@@ -1,4 +1,6 @@
 sql.log
+login_token.txt
+data/*.db*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
