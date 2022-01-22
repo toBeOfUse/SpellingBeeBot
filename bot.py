@@ -17,7 +17,6 @@ class BeeBotConfig:
     }
 
 
-# https://discord.com/api/oauth2/authorize?client_id=933882667378827294&permissions=274877941824&scope=bot%20applications.commands
 class BeeBot(discord.Bot):
 
     def __init__(self) -> None:
