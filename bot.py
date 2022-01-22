@@ -49,18 +49,23 @@ class BeeBot(discord.Bot):
         
         # TODO: that other stuff
 
-        # TODO: something like "the next one will be [x] hours from now"
+        hours = round(new.seconds_until_next_time()/60/60)
+        hours_statement = f"The next puzzle will be in about {hours} hours."
         if existed is not None:
             if existed.channel_id != new.channel_id:
                 return (
-                    "Great! This channel will now receive puzzle posts instead of that other one."
+                    "Great! This channel will now receive puzzle posts instead "+
+                    "of that other one. " + hours_statement
                 )
             elif existed.timing != new.timing:
-                return f"Great! This channel will now receive puzzles at a new time."
+                return (
+                    f"Great! This channel will now receive puzzles at a new "+
+                    "time. "+hours_statement
+                )
             else:
                 return "Great! Nothing will change."
         else:
-            return f"Great! This channel is now On the Schedule."
+            return f"Great! This channel is now On the Schedule. "+hours_statement
     
     def remove_scheduled_post(self, guild_id: int) -> Optional[ScheduledPost]:
         """
