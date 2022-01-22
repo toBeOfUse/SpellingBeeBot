@@ -18,6 +18,7 @@ Base = mapper_registry.generate_base()
 
 tz = ZoneInfo("America/New_York")
 
+
 class ScheduledPost(Base):
     __tablename__ = "schedule"
 
@@ -28,36 +29,35 @@ class ScheduledPost(Base):
     timing = Column(Float, nullable=False)
 
     def __repr__(self):
-        return (f"Posting in channel {self.channel_id} (guild {self.guild_id}) at "+
-            f"{self.timing} hours. Current session ID is {self.current_session}.")
-    
-    def get_next_time(self, starting_from: Optional[datetime]=None) -> datetime:
+        return (
+            f"Posting in channel {self.channel_id} (guild {self.guild_id}) at "
+            +
+            f"{self.timing} hours. Current session ID is {self.current_session}."
+        )
+
+    def get_next_time(self,
+                      starting_from: Optional[datetime] = None) -> datetime:
         if starting_from is None:
             base = datetime.now(tz=tz)
         else:
             base = starting_from
-        nowHours = base.hour+base.minute/60+base.second/3600
+        nowHours = base.hour + base.minute / 60 + base.second / 3600
         if nowHours >= self.timing:
             base += timedelta(days=1)
-        return datetime(
-            year=base.year, 
-            month=base.month, 
-            day=base.day, 
-            hour=int(self.timing), 
-            minute=int((self.timing%1)*60),
-            tzinfo=tz
-        )
-    
-    def seconds_until_next_time(
-        self,
-        starting_from: Optional[datetime]=None
-    ) -> float:
+        return datetime(year=base.year,
+                        month=base.month,
+                        day=base.day,
+                        hour=int(self.timing),
+                        minute=int((self.timing % 1) * 60),
+                        tzinfo=tz)
+
+    def seconds_until_next_time(self,
+                                starting_from: Optional[datetime] = None
+                                ) -> float:
         base = starting_from or datetime.now()
-        return (
-            self.get_next_time(starting_from).astimezone(ZoneInfo("UTC")) -
-            base.astimezone(ZoneInfo("UTC"))
-        ).total_seconds()
-        
+        return (self.get_next_time(starting_from).astimezone(ZoneInfo("UTC")) -
+                base.astimezone(ZoneInfo("UTC"))).total_seconds()
+
 
 Base.metadata.create_all(engine)
 
@@ -68,7 +68,7 @@ if __name__ == "__main__":
     print("7:00 Eastern:")
     print(test.get_next_time())
     print("which is in:")
-    print(test.get_next_time()-datetime.now(tz=tz))
+    print(test.get_next_time() - datetime.now(tz=tz))
 
     print("From March 12th, 2022:")
     dst_base = datetime(2022, 3, 12, 7, tzinfo=tz)

@@ -9,6 +9,7 @@ py-cord = {git = "https://github.com/toBeOfUse/pycord"}
 tzdata = "*"
 
 [dev-packages]
+yapf = "*"
 
 [requires]
 python_version = "3.10"
