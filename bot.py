@@ -1,9 +1,21 @@
+import asyncio
+from asyncio.log import logger
+from datetime import datetime
+from io import BytesIO
 from typing import Optional
+from zoneinfo import ZoneInfo
+
+import aiocron
 import discord
+from bee_engine import SessionBee, SpellingBee
 from discord.commands import ApplicationContext, Option
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from models import ScheduledPost, engine
+
+from models import ScheduledPost, engine, hourable
+
+bee_db = "data/bee.db"
+et = ZoneInfo("America/New_York")
 
 
 class BeeBotConfig:
@@ -13,8 +25,22 @@ class BeeBotConfig:
         "Noon": 12,
         "Afternoon": 16,
         "Evening": 20,
-        "ASAP": 3
+        "As soon as a new puzzle is available": 3,
+        "Now, and 24 hours from now, and so on": -1
     }
+
+    @classmethod
+    def get_timing_choices(cls) -> list[str]:
+        return list(cls.timing_choices.keys())
+
+    @classmethod
+    def get_hour_for_choice(cls, choice: str) -> float:
+        assert choice in cls.timing_choices
+        hour = cls.timing_choices[choice]
+        if hour == -1:
+            return hourable.now(tz=et).decimal_hours
+        else:
+            return hour
 
 
 class BeeBot(discord.Bot):
@@ -22,33 +48,80 @@ class BeeBot(discord.Bot):
     def __init__(self) -> None:
         super().__init__()
         self.session = Session(engine)
-        # TODO: iterate over schedule, execute any outstanding scheduled posts,
-        # schedule rest for next execution
+        self.todays_puzzle_ready = self.ensure_todays_puzzle()
+        "Must be awaited to be sure that today's puzzle is available."
+
+        @aiocron.crontab("0 3 * * *", datetime.now(tz=et))
+        async def get_new_puzzle():
+            self.todays_puzzle_rendered = self.ensure_todays_puzzle()
 
     async def on_connect(self):
         await super().on_connect()
         print("BeeBot connected")
+        for scheduled in self.schedule:
+            # TODO: execute outstanding posts
+            asyncio.create_task(self.daily_loop(scheduled))
+
+    @staticmethod
+    def get_current_date():
+        return datetime.now(tz=et).strftime("%Y-%m-%d")
+
+    async def ensure_todays_puzzle(self):
+        """
+        If a SpellingBee for the current puzzle doesn't exist, retrieve it
+        and render the image. This method only needs to be called once a day, to
+        avoid fetching or rendering the same puzzle multiple times
+        simultaneously; the coroutine object it returns can be stored and
+        awaited to ensure the day's puzzle is available subsequently.
+        """
+        if SpellingBee.retrieve_saved(self.get_current_date(), bee_db) is None:
+            print("retrieving new puzzle...")
+            new_bee = await SpellingBee.fetch_from_nyt()
+            print("retrieved")
+            new_bee.persist_to(bee_db)
+            print("rendering graphic...")
+            await new_bee.render()
+            print("rendered")
 
     @property
     def schedule(self) -> list[ScheduledPost]:
         return list(x[0] for x in self.session.execute(select(ScheduledPost)))
 
-    def add_scheduled_post(self, new: ScheduledPost) -> str:
+    async def add_scheduled_post(self, new: ScheduledPost) -> str:
         """
         Adds a new ScheduledPost to the internal schedule. If the time of day
         for the given scheduled post has passed and there isn't already an
-        active session for this day's puzzle for this channel, the post will be
+        active session for this day's puzzle for this channel, a post will be
         immediately sent. Responds with a status update message.
         """
         existed = self.remove_scheduled_post(new.guild_id)
+        # if we're replacing an old scheduled post, the new one inherits the
+        # current_session of the old one so that people can keep making guesses
+        # in the channel with the same session (albeit possibly only Very
+        # briefly)
+        if existed is not None and existed.current_session is not None:
+            new.current_session = existed.current_session
         self.session.add(new)
         self.session.flush()
         self.session.commit()
 
-        # TODO: that other stuff
+        # immediately send a puzzle if the time for the puzzle to be sent today
+        # has passed and there wasn't already a puzzle for this day in this
+        # channel already
+        if hourable.now(tz=et).decimal_hours >= new.timing:
+            hadnt_sent_yet = (not existed or not existed.current_session
+                              or existed.channel_id != new.channel_id)
+            not_up_to_date = hadnt_sent_yet or (SessionBee.retrieve_saved(
+                existed.current_session, bee_db).day !=
+                                                self.get_current_date())
+            if not_up_to_date:
+                await self.send_scheduled_post(new)
+
+        asyncio.create_task(self.daily_loop(new))
 
         hours = round(new.seconds_until_next_time() / 60 / 60)
-        hours_statement = f"The next puzzle will be in about {hours} hours."
+        # TODO: use timestamp embedding
+        hours_statement = f"There will be a new puzzle in about {hours} hours."
         if existed is not None:
             if existed.channel_id != new.channel_id:
                 return (
@@ -63,10 +136,104 @@ class BeeBot(discord.Bot):
         else:
             return f"Great! This channel is now On the Schedule. " + hours_statement
 
+    @staticmethod
+    def get_status_message(bee: SessionBee):
+        prefix = "Words found so far: "
+        if len(bee.gotten_words):
+            prefix += bee.list_gotten_words(enclose_with=["||", "||"])
+        else:
+            prefix += "-"
+        return prefix
+
+    async def send_scheduled_post(self, scheduled: ScheduledPost):
+        """
+        Creates a new SessionBee with the latest SpellingBee puzzle; persists
+        it, sends a message with its graphic, creates a status message, and
+        stores the ID of that so it can be updated later.
+        """
+        channel = self.get_channel(scheduled.channel_id)
+        async with channel.typing():
+            await self.todays_puzzle_ready
+            bee_base = SpellingBee.retrieve_saved(db_path=bee_db)
+            bee = SessionBee(bee_base)
+            bee.persist_to(bee_db)
+            scheduled.current_session = bee.session_id
+            self.session.add(scheduled)
+            self.session.flush()
+            self.session.commit()
+            await asyncio.sleep(1)
+
+            def datesuffix(d: int):
+                return str(d) + ('th' if 11 <= d <= 13 else {
+                    1: 'st',
+                    2: 'nd',
+                    3: 'rd'
+                }.get(d % 10, 'th'))
+
+            def dateformat(d: datetime):
+                return d.strftime("%A, %B ") + datesuffix(d.day)
+
+            content = (
+                f"Good morning. It's {dateformat(datetime.now(tz=et))} in "
+                "New York City, and the Spelling Bee's gears are a-grinding. Reply to "
+                "this message with words that fit to help complete today's puzzle."
+            )
+            await channel.send(content,
+                               file=discord.File(BytesIO(bee.image),
+                                                 "bee." + bee.image_file_type))
+        status_message = await channel.send(self.get_status_message(bee))
+        bee.metadata = {"status_message_id": status_message.id}
+
+    async def daily_loop(self, scheduled: ScheduledPost):
+        while True:
+            # just to make absolutely sure we don't double-post after the loop
+            # loops or after send_scheduled_post has just sent a "starting at
+            # this time of day + 24 hours indefinitely" puzzle
+            await asyncio.sleep(5)
+            seconds = scheduled.seconds_until_next_time()
+            print(
+                f"sending puzzle to guild {self.get_guild(scheduled.guild_id).name} "
+                f"in {seconds/60/60} hours")
+            await asyncio.sleep(seconds)
+            # exit the loop if the timing has changed for this scheduled post
+            # while we were sleeping
+            live_scheduled_post_row = self.session.execute(
+                select(ScheduledPost.timing).where(
+                    ScheduledPost.id == scheduled.id)).first()
+            if (live_scheduled_post_row is None
+                    or live_scheduled_post_row[0] != scheduled.timing):
+                break
+            await self.send_scheduled_post(scheduled)
+            print(
+                f"sent puzzle to guild {self.get_guild(scheduled.guild_id).name}"
+            )
+
+    async def respond_to_guesses(self, message: discord.Message):
+        guild_id = message.guild.id
+        channel_id = message.channel.id
+        guessing_session_id = self.session.execute(
+            select(ScheduledPost.current_session).where(
+                ScheduledPost.guild_id == guild_id
+                and ScheduledPost.channel_id == channel_id)).first()
+        if guessing_session_id is None or guessing_session_id[0] is None:
+            logger.warn(
+                f"tried to respond to message attached to no active session "
+                "(guild: {message.guild.id}, channel: {message.channel.id}, "
+                "message: {message.id}})")
+            return
+        bee = SessionBee.retrieve_saved(guessing_session_id[0], bee_db)
+        reactions = bee.respond_to_guesses(message.content)
+        for reaction in reactions:
+            await message.add_reaction(reaction)
+        status_message = await message.channel.fetch_message(
+            bee.metadata["status_message_id"])
+        await status_message.edit(content=self.get_status_message(bee))
+
     def remove_scheduled_post(self, guild_id: int) -> Optional[ScheduledPost]:
         """
         Removes the scheduled post for this guild from the database if it
-        exists; returns it, in that case.
+        exists; returns it, in that case (the current_session field may need to
+        be copied to a new scheduled post for this channel.)
         """
         existing = self.session.execute(
             select(ScheduledPost).where(
@@ -87,14 +254,13 @@ guild_ids = [708955889276551198]
 async def start_puzzling(ctx: ApplicationContext, time: Option(
     str,
     "What time? This is based on the New York Times' time zone.",
-    choices=list(BeeBotConfig.timing_choices.keys()),
-    default=list(BeeBotConfig.timing_choices.keys())[0])):
+    choices=BeeBotConfig.get_timing_choices(),
+    default=BeeBotConfig.get_timing_choices()[0])):
     "Start receiving Spelling Bees here!"
-    await ctx.respond(
-        bot.add_scheduled_post(
-            ScheduledPost(guild_id=ctx.guild_id,
-                          channel_id=ctx.channel_id,
-                          timing=BeeBotConfig.timing_choices[time])))
+    await ctx.respond(await bot.add_scheduled_post(
+        ScheduledPost(guild_id=ctx.guild_id,
+                      channel_id=ctx.channel_id,
+                      timing=BeeBotConfig.get_hour_for_choice(time))))
 
 
 @bot.slash_command(guild_ids=guild_ids)
@@ -107,3 +273,26 @@ async def stop_puzzling(ctx: ApplicationContext):
     else:
         await ctx.respond(
             "Okay! This channel will no longer receive Spelling Bee posts.")
+
+
+@bot.slash_command(guild_ids=guild_ids)
+async def obtain_hint(ctx: ApplicationContext):
+    "Get the Spelling Bee hint chart"
+    scheduled: ScheduledPost = bot.session.execute(
+        select(ScheduledPost).where(
+            ScheduledPost.guild_id == ctx.guild_id)).first()
+    if scheduled.channel_id != ctx.channel_id:
+        await ctx.respond(
+            "This slash command is intended for the channel where "
+            "the Spelling Bees are posted (<#{scheduled.channel_id}>)!",
+            ephemeral=True)
+    else:
+        bee = SessionBee.retrieve_saved(scheduled.current_session, bee_db)
+        hints = bee.get_unguessed_hints().format_all_for_discord()
+        await ctx.respond(hints)
+
+
+@bot.event
+async def on_message(message: discord.Message):
+    if not message.mention_everyone and message.guild.me.mentioned_in(message):
+        await bot.respond_to_guesses(message)
