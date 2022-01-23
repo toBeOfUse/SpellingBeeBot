@@ -18,6 +18,13 @@ Base = mapper_registry.generate_base()
 tz = ZoneInfo("America/New_York")
 
 
+class hourable(datetime):
+
+    @property
+    def decimal_hours(self):
+        return self.hour + self.minute / 60 + self.second / 3600
+
+
 class ScheduledPost(Base):
     __tablename__ = "schedule"
 
@@ -40,7 +47,7 @@ class ScheduledPost(Base):
             base = datetime.now(tz=tz)
         else:
             base = starting_from
-        nowHours = base.hour + base.minute / 60 + base.second / 3600
+        nowHours = hourable.now().decimal_hours
         if nowHours >= self.timing:
             base += timedelta(days=1)
         return datetime(year=base.year,
