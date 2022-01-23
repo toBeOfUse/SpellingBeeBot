@@ -6,7 +6,6 @@ from zoneinfo import ZoneInfo
 from sqlalchemy import create_engine, Column, Integer, BigInteger, String, Float
 from sqlalchemy.orm import registry
 
-logging.basicConfig()
 sqlEngineLog = logging.getLogger('sqlalchemy.engine')
 sqlEngineLog.setLevel(logging.INFO)
 sqlEngineLog.addHandler(logging.FileHandler("sql.log"))
