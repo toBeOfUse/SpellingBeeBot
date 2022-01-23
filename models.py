@@ -44,11 +44,11 @@ class ScheduledPost(Base):
     def get_next_time(self,
                       starting_from: Optional[datetime] = None) -> datetime:
         if starting_from is None:
-            base = datetime.now(tz=tz)
+            base = hourable.now(tz=tz)
         else:
-            base = starting_from
-        nowHours = hourable.now().decimal_hours
-        if nowHours >= self.timing:
+            base = hourable.fromtimestamp(starting_from.timestamp(), tz=tz)
+        baseHours = base.decimal_hours
+        if baseHours >= self.timing:
             base += timedelta(days=1)
         return datetime(year=base.year,
                         month=base.month,
