@@ -60,7 +60,7 @@ class ScheduledPost(Base):
     def seconds_until_next_time(self,
                                 starting_from: Optional[datetime] = None
                                 ) -> float:
-        base = starting_from or datetime.now()
+        base = starting_from or datetime.now(tz=tz)
         return (self.get_next_time(starting_from).astimezone(ZoneInfo("UTC")) -
                 base.astimezone(ZoneInfo("UTC"))).total_seconds()
 
