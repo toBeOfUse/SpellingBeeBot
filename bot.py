@@ -1,8 +1,8 @@
 import asyncio
-from asyncio.log import logger
 from datetime import datetime
 from io import BytesIO
 from typing import Optional
+from logging import getLogger
 from zoneinfo import ZoneInfo
 
 import aiocron
@@ -16,6 +16,7 @@ from models import ScheduledPost, engine, hourable
 
 bee_db = "data/bee.db"
 et = ZoneInfo("America/New_York")
+logger = getLogger()
 
 
 class BeeBotConfig:
@@ -48,16 +49,22 @@ class BeeBot(discord.Bot):
     def __init__(self) -> None:
         super().__init__()
         self.session = Session(engine)
-        self.todays_puzzle_ready = self.ensure_todays_puzzle()
-        "Must be awaited to be sure that today's puzzle is available."
+        self.todays_puzzle_ready: Optional[asyncio.Task] = None
+        """Must be awaited to be sure that today's puzzle is available. The Task
+        is created in on_connect; thus, no puzzles can be sent before on_connect
+        runs (which makes sense anyway.)"""
 
         @aiocron.crontab("0 3 * * *", datetime.now(tz=et))
         async def get_new_puzzle():
-            self.todays_puzzle_rendered = self.ensure_todays_puzzle()
+            await self.wait_until_ready()
+            self.todays_puzzle_rendered = asyncio.create_task(
+                self.ensure_todays_puzzle())
 
     async def on_connect(self):
         await super().on_connect()
         print("BeeBot connected")
+        self.todays_puzzle_ready = asyncio.create_task(
+            self.ensure_todays_puzzle())
         for scheduled in self.schedule:
             # TODO: execute outstanding posts
             asyncio.create_task(self.daily_loop(scheduled))
