@@ -181,6 +181,10 @@ class BeeBot(discord.Bot):
         async with channel.typing():
             await self.todays_puzzle_ready
             bee_base = SpellingBee.retrieve_saved(db_path=bee_db)
+            while bee_base.day != self.get_current_date():
+                await asyncio.sleep(5)
+                await self.todays_puzzle_ready
+                bee_base = SpellingBee.retrieve_saved(db_path=bee_db)
             bee = SessionBee(bee_base)
             bee.persist_to(bee_db)
             scheduled.current_session = bee.session_id
