@@ -5,7 +5,13 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python: Current File",
+            "name": "Python: Tests",
+            "type": "python",
+            "request": "launch",
+            "module": "unittest"
+        },
+        {
+            "name": "Python: Main",
             "type": "python",
             "request": "launch",
             "program": "main.py",
