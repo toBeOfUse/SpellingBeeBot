@@ -10,8 +10,6 @@ sqlEngineLog = logging.getLogger('sqlalchemy.engine')
 sqlEngineLog.setLevel(logging.INFO)
 sqlEngineLog.addHandler(logging.FileHandler("sql.log"))
 
-engine = create_engine("sqlite+pysqlite:///data/schedule.db", future=True)
-
 mapper_registry = registry()
 Base = mapper_registry.generate_base()
 
@@ -65,7 +63,11 @@ class ScheduledPost(Base):
                 base.astimezone(ZoneInfo("UTC"))).total_seconds()
 
 
+def create_db(db_path: str):
+    engine = create_engine("sqlite+pysqlite:///" + db_path, future=True)
 Base.metadata.create_all(engine)
+    return engine
+
 
 if __name__ == "__main__":
     print("Current Time:")
