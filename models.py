@@ -20,7 +20,17 @@ class hourable(datetime):
 
     @property
     def decimal_hours(self):
-        return self.hour + self.minute / 60 + self.second / 3600
+        return (self.hour + self.minute / 60 + self.second / 60 / 60 +
+                self.microsecond / 60 / 60 / 1000000)
+
+    def replace_time_with_decimal_hours(self, hours: float) -> "hourable":
+        minutes = hours % 1 * 60
+        seconds = minutes % 1 * 60
+        microseconds = seconds % 1 * 1000000
+        return self.replace(hour=int(hours),
+                            minute=int(minutes),
+                            second=int(seconds),
+                            microsecond=int(microseconds))
 
 
 class ScheduledPost(Base):
@@ -48,12 +58,7 @@ class ScheduledPost(Base):
         baseHours = base.decimal_hours
         if baseHours >= self.timing:
             base += timedelta(days=1)
-        return datetime(year=base.year,
-                        month=base.month,
-                        day=base.day,
-                        hour=int(self.timing),
-                        minute=int((self.timing % 1) * 60),
-                        tzinfo=tz)
+        return base.replace_time_with_decimal_hours(self.timing)
 
     def seconds_until_next_time(self,
                                 starting_from: Optional[datetime] = None
@@ -65,7 +70,7 @@ class ScheduledPost(Base):
 
 def create_db(db_path: str):
     engine = create_engine("sqlite+pysqlite:///" + db_path, future=True)
-Base.metadata.create_all(engine)
+    Base.metadata.create_all(engine)
     return engine
 
 
