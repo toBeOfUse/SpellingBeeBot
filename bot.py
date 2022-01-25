@@ -61,24 +61,30 @@ class BeeBot(discord.Bot):
 
     def __init__(self) -> None:
         super().__init__()
-        self.session = Session(engine)
+        self.db_engine = create_db(schedule_db)
+        self.session = Session(self.db_engine)
         self.todays_puzzle_ready: Optional[asyncio.Task] = None
         """Must be awaited to be sure that today's puzzle is available. The Task
         is created in on_connect; thus, no puzzles can be sent before on_connect
         runs (which makes sense anyway.)"""
 
-        @aiocron.crontab("0 3 * * *", datetime.now(tz=et))
-        async def get_new_puzzle():
-            await self.wait_until_ready()
-            self.todays_puzzle_rendered = asyncio.create_task(
-                self.ensure_todays_puzzle())
+        self.initialized = False
+
+        aiocron.crontab("0 3 * * *", tz=et, func=self.get_new_puzzle)
+
+    async def get_new_puzzle(self):
+        self.todays_puzzle_ready = asyncio.create_task(
+            self.ensure_todays_puzzle())
 
     async def on_connect(self):
         await super().on_connect()
         logger.info("BeeBot connected")
-        for scheduled in self.schedule:
-            # TODO: execute outstanding posts
-            asyncio.create_task(self.daily_loop(scheduled))
+        if not self.initialized:
+            await self.get_new_puzzle()
+            for scheduled in self.schedule:
+                # TODO: execute outstanding posts
+                asyncio.create_task(self.daily_loop(scheduled))
+            self.initialized = True
 
     @staticmethod
     def get_current_date():
@@ -95,11 +101,11 @@ class BeeBot(discord.Bot):
         if SpellingBee.retrieve_saved(self.get_current_date(), bee_db) is None:
             logger.info("retrieving new puzzle...")
             new_bee = await SpellingBee.fetch_from_nyt()
-            logger.info("retrieved")
+            logger.info("retrieved puzzle from NYT")
             new_bee.persist_to(bee_db)
             logger.info("rendering graphic...")
             await new_bee.render()
-            logger.info("rendered")
+            logger.info("rendered graphic for today's puzzle")
 
     @property
     def schedule(self) -> list[ScheduledPost]:
@@ -204,10 +210,6 @@ class BeeBot(discord.Bot):
 
     async def daily_loop(self, scheduled: ScheduledPost):
         while True:
-            # just to make absolutely sure we don't double-post after the loop
-            # loops or after send_scheduled_post has just sent a "starting at
-            # this time of day + 24 hours indefinitely" puzzle
-            await asyncio.sleep(5)
             seconds = scheduled.seconds_until_next_time()
             logger.info(
                 f"sending puzzle to guild {self.get_guild(scheduled.guild_id).name} "
@@ -225,6 +227,8 @@ class BeeBot(discord.Bot):
             logger.info(
                 f"sent puzzle to guild {self.get_guild(scheduled.guild_id).name}"
             )
+            # just to make completely sure we won't double post
+            await asyncio.sleep(1)
 
     async def respond_to_guesses(self, message: discord.Message):
         guild_id = message.guild.id
