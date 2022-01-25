@@ -296,7 +296,7 @@ async def start_puzzling(ctx: ApplicationContext, time: Option(
 async def stop_puzzling(ctx: ApplicationContext):
     "Stop receiving Spelling Bees here!"
     existed = bot.remove_scheduled_post(ctx.guild_id) is not None
-    if existed:
+    if not existed:
         await ctx.respond(
             "This channel was already not receiving Spelling Bee posts!")
     else:
