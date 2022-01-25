@@ -122,6 +122,8 @@ class BotTest(IsolatedAsyncioTestCase):
         await self.bot.respond_to_guesses(message)
         message.add_reaction.assert_awaited_with("👍")
         status_message.edit.assert_awaited()
+        await self.bot.respond_to_guesses(message)
+        message.add_reaction.assert_awaited_with("🤝")
 
     async def test_schedule_attr(self):
         test_post = ScheduledPost(**test_post_data, timing=0)

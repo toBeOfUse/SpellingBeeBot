@@ -250,6 +250,7 @@ class BeeBot(discord.Bot):
                 "message: {message.id}})")
             return
         bee = SessionBee.retrieve_saved(guessing_session_id[0], bee_db)
+        bee.persist_to(bee_db)
         reactions = bee.respond_to_guesses(message.content)
         for reaction in reactions:
             await message.add_reaction(reaction)
