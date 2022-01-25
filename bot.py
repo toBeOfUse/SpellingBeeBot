@@ -119,6 +119,8 @@ class BeeBot(discord.Bot):
         immediately sent. Responds with a status update message.
         """
         existed = self.remove_scheduled_post(new.guild_id)
+        if existed is not None:
+            logger.info(f"replacing post for guild {new.guild_id}")
         # if we're replacing an old scheduled post, the new one inherits the
         # current_session of the old one so that people can keep making guesses
         # in the channel with the same session (albeit possibly only Very

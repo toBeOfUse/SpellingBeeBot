@@ -1,5 +1,5 @@
 import asyncio
-from datetime import datetime
+from datetime import datetime, timedelta
 from unittest import IsolatedAsyncioTestCase
 from unittest.mock import Mock, AsyncMock, patch
 from pathlib import Path
@@ -13,6 +13,12 @@ test_post_data = {"guild_id": -1, "channel_id": -1}
 
 
 class BotTest(IsolatedAsyncioTestCase):
+
+    @staticmethod
+    def get_future_post(**kwargs):
+        return ScheduledPost(**test_post_data,
+                             timing=(hourable.now(tz=et) +
+                                     timedelta(**kwargs)).decimal_hours)
 
     def setUp(self):
         bot.bee_db = "data/mock_puzzles.db"
@@ -58,18 +64,15 @@ class BotTest(IsolatedAsyncioTestCase):
         self.bot.ensure_todays_puzzle.assert_not_called()
 
     async def test_loop_fires(self):
-        test_post = ScheduledPost(**test_post_data,
-                                  timing=hourable.now(tz=et).decimal_hours +
-                                  1 / 60 / 60)
+        test_post = self.get_future_post(seconds=1)
         self.bot.send_scheduled_post = AsyncMock()
         await self.bot.add_scheduled_post(test_post)
         await asyncio.sleep(2)
         self.bot.send_scheduled_post.assert_called_once_with(test_post)
 
     async def test_loop_cancels(self):
-        test_post = ScheduledPost(**test_post_data,
-                                  timing=hourable.now(tz=et).decimal_hours +
-                                  1 / 60 / 60)
+        # test that posts won't be posted if they are deleted before their time:
+        test_post = self.get_future_post(seconds=1)
         self.bot.send_scheduled_post = AsyncMock()
         await self.bot.add_scheduled_post(test_post)
         self.bot.remove_scheduled_post(test_post.guild_id)
@@ -77,6 +80,33 @@ class BotTest(IsolatedAsyncioTestCase):
         await asyncio.sleep(2)
         self.bot.send_scheduled_post.assert_not_called()
         self.bot.send_scheduled_post.assert_not_awaited()
+
+        # or if they're edited/replaced:
+        other_test_post = self.get_future_post(seconds=1)
+        await self.bot.add_scheduled_post(other_test_post)
+        replacement = self.get_future_post(hours=1)
+        await self.bot.add_scheduled_post(replacement)
+        await self.bot.todays_puzzle_ready
+        await asyncio.sleep(2)
+        self.bot.send_scheduled_post.assert_not_called()
+        self.bot.send_scheduled_post.assert_not_awaited()
+
+    async def test_responds(self):
+        await self.bot.send_scheduled_post(self.get_future_post(seconds=1))
+        await self.bot.todays_puzzle_ready
+        await asyncio.sleep(1)
+        message = Mock()
+        message.guild.id = -1
+        message.channel.id = -1
+        message.add_reaction = AsyncMock()
+        status_message = Mock()
+        status_message.edit = AsyncMock()
+        message.channel.fetch_message = AsyncMock(return_value=status_message)
+        guess = list(SpellingBee.retrieve_saved(db_path=bot.bee_db).answers)[0]
+        message.content = f"my guess is {guess}!"
+        await self.bot.respond_to_guesses(message)
+        message.add_reaction.assert_awaited_with("👍")
+        status_message.edit.assert_awaited()
 
     async def test_schedule_attr(self):
         test_post = ScheduledPost(**test_post_data, timing=0)
