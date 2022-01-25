@@ -2,7 +2,9 @@ import asyncio
 from datetime import datetime
 from io import BytesIO
 from typing import Optional
-from logging import getLogger
+import sys
+import logging
+from logging import FileHandler, getLogger, StreamHandler
 from zoneinfo import ZoneInfo
 
 import aiocron
@@ -12,11 +14,22 @@ from discord.commands import ApplicationContext, Option
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from models import ScheduledPost, engine, hourable
+from models import ScheduledPost, create_db, hourable
 
 bee_db = "data/bee.db"
+schedule_db = "data/schedule.db"
 et = ZoneInfo("America/New_York")
-logger = getLogger()
+logger = getLogger("BeeBot")
+logger.setLevel(logging.DEBUG)
+streamhandler = StreamHandler(sys.stdout)
+streamhandler.setLevel(logging.DEBUG)
+logger.addHandler(streamhandler)
+filehandler = (FileHandler("BeeBot.log", mode="a+", encoding="utf-8"))
+filehandler.setLevel(logging.DEBUG)
+filehandler.setFormatter(
+    logging.Formatter("%(asctime)s %(levelname)s %(message)s",
+                      "%Y-%m-%d %H:%M:%S"))
+logger.addHandler(filehandler)
 
 
 class BeeBotConfig:
@@ -62,9 +75,7 @@ class BeeBot(discord.Bot):
 
     async def on_connect(self):
         await super().on_connect()
-        print("BeeBot connected")
-        self.todays_puzzle_ready = asyncio.create_task(
-            self.ensure_todays_puzzle())
+        logger.info("BeeBot connected")
         for scheduled in self.schedule:
             # TODO: execute outstanding posts
             asyncio.create_task(self.daily_loop(scheduled))
@@ -82,13 +93,13 @@ class BeeBot(discord.Bot):
         awaited to ensure the day's puzzle is available subsequently.
         """
         if SpellingBee.retrieve_saved(self.get_current_date(), bee_db) is None:
-            print("retrieving new puzzle...")
+            logger.info("retrieving new puzzle...")
             new_bee = await SpellingBee.fetch_from_nyt()
-            print("retrieved")
+            logger.info("retrieved")
             new_bee.persist_to(bee_db)
-            print("rendering graphic...")
+            logger.info("rendering graphic...")
             await new_bee.render()
-            print("rendered")
+            logger.info("rendered")
 
     @property
     def schedule(self) -> list[ScheduledPost]:
@@ -198,7 +209,7 @@ class BeeBot(discord.Bot):
             # this time of day + 24 hours indefinitely" puzzle
             await asyncio.sleep(5)
             seconds = scheduled.seconds_until_next_time()
-            print(
+            logger.info(
                 f"sending puzzle to guild {self.get_guild(scheduled.guild_id).name} "
                 f"in {seconds/60/60} hours")
             await asyncio.sleep(seconds)
@@ -211,7 +222,7 @@ class BeeBot(discord.Bot):
                     or live_scheduled_post_row[0] != scheduled.timing):
                 break
             await self.send_scheduled_post(scheduled)
-            print(
+            logger.info(
                 f"sent puzzle to guild {self.get_guild(scheduled.guild_id).name}"
             )
 
