@@ -6,10 +6,25 @@ from pathlib import Path
 from bot import BeeBot, SpellingBee, et
 import bot
 import discord
+from freezegun import freeze_time
 
 from models import ScheduledPost, hourable
 
 test_post_data = {"guild_id": -1, "channel_id": -1}
+
+
+class SimpleBotTest(IsolatedAsyncioTestCase):
+
+    def setUp(self):
+        bot.bee_db = "data/mock_puzzles.db"
+        bot.schedule_db = "data/mock_schedule.db"
+
+    @freeze_time(datetime(2022, 1, 1, 2, 59, 59, tzinfo=et), tick=True)
+    async def test_morning_fetch(self):
+        BeeBot.get_new_puzzle = AsyncMock()
+        freshbot = BeeBot()
+        await asyncio.sleep(2)
+        BeeBot.get_new_puzzle.assert_awaited_once()
 
 
 class BotTest(IsolatedAsyncioTestCase):
@@ -119,9 +134,3 @@ class BotTest(IsolatedAsyncioTestCase):
         self.assertEqual(test_post.timing, test_post.timing)
         self.bot.remove_scheduled_post(test_post.guild_id)
         self.assertEqual(len(self.bot.schedule), 0)
-
-    async def test_add_post(self):
-        pass
-
-    async def test_remove_post(self):
-        pass

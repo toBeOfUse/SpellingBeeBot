@@ -12,6 +12,7 @@ bee-engine = {git = "https://github.com/tobeofuse/bee-engine"}
 
 [dev-packages]
 yapf = "*"
+freezegun = "*"
 
 [requires]
 python_version = "3.10"
