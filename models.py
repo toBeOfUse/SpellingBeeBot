@@ -8,7 +8,7 @@ from sqlalchemy.orm import registry
 
 sqlEngineLog = logging.getLogger('sqlalchemy.engine')
 sqlEngineLog.setLevel(logging.INFO)
-sqlEngineLog.addHandler(logging.FileHandler("sql.log"))
+sqlEngineLog.addHandler(logging.FileHandler("logs/sql.log"))
 
 mapper_registry = registry()
 Base = mapper_registry.generate_base()

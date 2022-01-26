@@ -19,17 +19,38 @@ from models import ScheduledPost, create_db, hourable
 bee_db = "data/bee.db"
 schedule_db = "data/schedule.db"
 et = ZoneInfo("America/New_York")
+
+
+def logger_setup():
+    file_formatter = logging.Formatter("%(asctime)s %(levelname)s %(message)s",
+                                       "%Y-%m-%d %H:%M:%S")
+
+    discord_logger = getLogger("discord")
+    for handler in discord_logger.handlers:
+        discord_logger.removeHandler(handler)
+    discord_logger.setLevel(logging.DEBUG)
+    discord_file_handler = FileHandler("logs/discord.log",
+                                       mode="a+",
+                                       encoding="utf-8")
+    discord_file_handler.setFormatter(file_formatter)
+    discord_logger.addHandler(discord_file_handler)
+    discord_stream_handler = StreamHandler(sys.stdout)
+    discord_stream_handler.setLevel(logging.WARNING)
+    discord_logger.addHandler(discord_stream_handler)
+
 logger = getLogger("BeeBot")
 logger.setLevel(logging.DEBUG)
 streamhandler = StreamHandler(sys.stdout)
 streamhandler.setLevel(logging.DEBUG)
 logger.addHandler(streamhandler)
-filehandler = (FileHandler("BeeBot.log", mode="a+", encoding="utf-8"))
+    filehandler = (FileHandler("logs/BeeBot.log", mode="a+", encoding="utf-8"))
 filehandler.setLevel(logging.DEBUG)
-filehandler.setFormatter(
-    logging.Formatter("%(asctime)s %(levelname)s %(message)s",
-                      "%Y-%m-%d %H:%M:%S"))
+    filehandler.setFormatter(file_formatter)
 logger.addHandler(filehandler)
+    return logger
+
+
+logger = logger_setup()
 
 
 class BeeBotConfig:
@@ -286,10 +307,15 @@ async def start_puzzling(ctx: ApplicationContext, time: Option(
     choices=BeeBotConfig.get_timing_choices(),
     default=BeeBotConfig.get_timing_choices()[0])):
     "Start receiving Spelling Bees here!"
-    await ctx.respond(await bot.add_scheduled_post(
+    response = await bot.add_scheduled_post(
         ScheduledPost(guild_id=ctx.guild_id,
                       channel_id=ctx.channel_id,
-                      timing=BeeBotConfig.get_hour_for_choice(time))))
+                      timing=BeeBotConfig.get_hour_for_choice(time)))
+    logger.info(
+        f"starting to send bees to channel {ctx.channel.name} in {ctx.guild.name}"
+    )
+    logger.info(f"notifying with response {response}")
+    await ctx.respond(response)
 
 
 @bot.slash_command(guild_ids=guild_ids)
