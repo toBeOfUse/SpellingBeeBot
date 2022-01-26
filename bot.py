@@ -116,7 +116,8 @@ class BeeBot(discord.Bot):
 
     @property
     def guild_ids(self):
-        if "Test" in self.user.name:
+        # (self.user is None when running tests that don't connect the bot)
+        if self.user and "Test" in self.user.name:
             return [708955889276551198]
         else:
             return None
@@ -172,7 +173,7 @@ class BeeBot(discord.Bot):
                 existed.current_session, bee_db).day !=
                                                 self.get_current_date())
             if not_up_to_date:
-                await self.send_scheduled_post(new)
+                asyncio.create_task(self.send_scheduled_post(new))
 
         asyncio.create_task(self.daily_loop(new))
 
@@ -197,6 +198,7 @@ class BeeBot(discord.Bot):
     def get_status_message(bee: SessionBee):
         prefix = "Words found so far: "
         prefix += bee.list_gotten_words(enclose_with=["||", "||"])
+        prefix += f" Current ranking: {bee.get_ranking()}!"
         return prefix
 
     async def send_scheduled_post(self, scheduled: ScheduledPost):
@@ -317,57 +319,57 @@ class BeeBot(discord.Bot):
     def init_responses(self):
 
         @self.slash_command(guild_ids=self.guild_ids)
-async def start_puzzling(ctx: ApplicationContext, time: Option(
+        async def start_puzzling(ctx: ApplicationContext, time: Option(
             str,
             "Time of day in NYC. If the time has passed today, you'll also "
-    "receive a puzzle immediately.",
-    choices=BeeBotConfig.get_timing_choices(),
-    default=BeeBotConfig.get_timing_choices()[0])):
-    "Start receiving Spelling Bees here!"
+            "receive a puzzle immediately.",
+            choices=BeeBotConfig.get_timing_choices(),
+            required=True)):
+            "Start receiving Spelling Bees here!"
             response = await self.add_scheduled_post(
-        ScheduledPost(guild_id=ctx.guild_id,
-                      channel_id=ctx.channel_id,
-                      timing=BeeBotConfig.get_hour_for_choice(time)))
-    logger.info(
-        f"starting to send bees to channel {ctx.channel.name} in {ctx.guild.name}"
-    )
-    logger.info(f"notifying with response {response}")
-    await ctx.respond(response)
+                ScheduledPost(guild_id=ctx.guild_id,
+                              channel_id=ctx.channel_id,
+                              timing=BeeBotConfig.get_hour_for_choice(time)))
+            logger.info(
+                f"starting to send bees to channel {ctx.channel.name} in {ctx.guild.name}"
+            )
+            logger.info(f"notifying with response {response}")
+            await ctx.respond(response)
 
         @self.slash_command(guild_ids=self.guild_ids)
-async def stop_puzzling(ctx: ApplicationContext):
-    "Stop receiving Spelling Bees here!"
+        async def stop_puzzling(ctx: ApplicationContext):
+            "Stop receiving Spelling Bees here!"
             existed = self.remove_scheduled_post(ctx.guild_id) is not None
-    if not existed:
-        await ctx.respond(
+            if not existed:
+                await ctx.respond(
                     "This channel was already not receiving Spelling Bee posts!"
                 )
-    else:
-        await ctx.respond(
+            else:
+                await ctx.respond(
                     "Okay! This channel will no longer receive Spelling Bee posts."
                 )
 
         @self.slash_command(guild_ids=self.guild_ids)
-async def obtain_hint(ctx: ApplicationContext):
+        async def obtain_hint(ctx: ApplicationContext):
             "Get an up-to-date Spelling Bee hint chart!"
             scheduled: ScheduledPost = self.session.execute(
-        select(ScheduledPost).where(
-            ScheduledPost.guild_id == ctx.guild_id)).first()
+                select(ScheduledPost).where(
+                    ScheduledPost.guild_id == ctx.guild_id)).first()
             if not scheduled:
                 await ctx.respond(
                     "Before using this slash command in this server, use "
                     "/start_puzzling to start getting puzzles!",
                     ephemeral=True)
-            elif scheduled.channel_id != ctx.channel_id:
-        await ctx.respond(
-            "This slash command is intended for the channel where "
-            "the Spelling Bees are posted (<#{scheduled.channel_id}>)!",
-            ephemeral=True)
-    else:
-                bee = SessionBee.retrieve_saved(scheduled.current_session,
+            elif scheduled[0].channel_id != ctx.channel_id:
+                await ctx.respond(
+                    "This slash command is intended for the channel where "
+                    "the Spelling Bees are posted (<#{scheduled.channel_id}>)!",
+                    ephemeral=True)
+            else:
+                bee = SessionBee.retrieve_saved(scheduled[0].current_session,
                                                 bee_db)
-        hints = bee.get_unguessed_hints().format_all_for_discord()
-        await ctx.respond(hints)
+                hints = bee.get_unguessed_hints().format_all_for_discord()
+                await ctx.respond(hints)
 
         @self.slash_command(guild_ids=self.guild_ids)
         async def explain_rules(ctx: ApplicationContext):
@@ -376,7 +378,7 @@ async def obtain_hint(ctx: ApplicationContext):
                 await ctx.respond(explanation_file.read())
 
         @self.event
-async def on_message(message: discord.Message):
+        async def on_message(message: discord.Message):
             if not message.mention_everyone and message.guild.me.mentioned_in(
                     message):
                 await self.respond_to_guesses(message)
