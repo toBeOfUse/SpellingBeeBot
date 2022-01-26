@@ -350,17 +350,23 @@ async def stop_puzzling(ctx: ApplicationContext):
 
         @self.slash_command(guild_ids=self.guild_ids)
 async def obtain_hint(ctx: ApplicationContext):
-    "Get the Spelling Bee hint chart"
-    scheduled: ScheduledPost = bot.session.execute(
+            "Get an up-to-date Spelling Bee hint chart!"
+            scheduled: ScheduledPost = self.session.execute(
         select(ScheduledPost).where(
             ScheduledPost.guild_id == ctx.guild_id)).first()
-    if scheduled.channel_id != ctx.channel_id:
+            if not scheduled:
+                await ctx.respond(
+                    "Before using this slash command in this server, use "
+                    "/start_puzzling to start getting puzzles!",
+                    ephemeral=True)
+            elif scheduled.channel_id != ctx.channel_id:
         await ctx.respond(
             "This slash command is intended for the channel where "
             "the Spelling Bees are posted (<#{scheduled.channel_id}>)!",
             ephemeral=True)
     else:
-        bee = SessionBee.retrieve_saved(scheduled.current_session, bee_db)
+                bee = SessionBee.retrieve_saved(scheduled.current_session,
+                                                bee_db)
         hints = bee.get_unguessed_hints().format_all_for_discord()
         await ctx.respond(hints)
 
