@@ -369,6 +369,11 @@ async def obtain_hint(ctx: ApplicationContext):
         hints = bee.get_unguessed_hints().format_all_for_discord()
         await ctx.respond(hints)
 
+        @self.slash_command(guild_ids=self.guild_ids)
+        async def explain_rules(ctx: ApplicationContext):
+            "Learn the rules of the Spelling Bee!"
+            with open("explanation.txt", encoding="utf-8") as explanation_file:
+                await ctx.respond(explanation_file.read())
 
         @self.event
 async def on_message(message: discord.Message):
