@@ -1,6 +1,7 @@
 import asyncio
 from datetime import datetime
 from io import BytesIO
+import random
 from typing import Optional
 import sys
 import logging
@@ -38,15 +39,15 @@ def logger_setup():
     discord_stream_handler.setLevel(logging.WARNING)
     discord_logger.addHandler(discord_stream_handler)
 
-logger = getLogger("BeeBot")
-logger.setLevel(logging.DEBUG)
-streamhandler = StreamHandler(sys.stdout)
-streamhandler.setLevel(logging.DEBUG)
-logger.addHandler(streamhandler)
+    logger = getLogger("BeeBot")
+    logger.setLevel(logging.DEBUG)
+    streamhandler = StreamHandler(sys.stdout)
+    streamhandler.setLevel(logging.DEBUG)
+    logger.addHandler(streamhandler)
     filehandler = (FileHandler("logs/BeeBot.log", mode="a+", encoding="utf-8"))
-filehandler.setLevel(logging.DEBUG)
+    filehandler.setLevel(logging.DEBUG)
     filehandler.setFormatter(file_formatter)
-logger.addHandler(filehandler)
+    logger.addHandler(filehandler)
     return logger
 
 
@@ -88,6 +89,8 @@ class BeeBot(discord.Bot):
         """Must be awaited to be sure that today's puzzle is available. The Task
         is created in on_connect; thus, no puzzles can be sent before on_connect
         runs (which makes sense anyway.)"""
+
+        logger.info("constructing new BeeBot!")
 
         self.initialized = False
 
@@ -186,10 +189,7 @@ class BeeBot(discord.Bot):
     @staticmethod
     def get_status_message(bee: SessionBee):
         prefix = "Words found so far: "
-        if len(bee.gotten_words):
-            prefix += bee.list_gotten_words(enclose_with=["||", "||"])
-        else:
-            prefix += "-"
+        prefix += bee.list_gotten_words(enclose_with=["||", "||"])
         return prefix
 
     async def send_scheduled_post(self, scheduled: ScheduledPost):
@@ -224,9 +224,21 @@ class BeeBot(discord.Bot):
             def dateformat(d: datetime):
                 return d.strftime("%A, %B ") + datesuffix(d.day)
 
+            sentiments = [
+                "and the Spelling Bee's gears are a-grinding.",
+                "for better or worse!",
+                "and tri-axle trucks are triangulating your location.",
+                "and today's quotidian bread is seeming a little more daily than usual.",
+                "and yet the world spins on.", "and don't they know it.",
+                "and the sky is taking the day off today.",
+                "and the sky is looking a little bluer today.",
+                "and \"unmute\" and \"echolocate\" are still words.",
+                "despite our best efforts.",
+                "and I still don't have a real job."
+            ]
             content = (
                 f"Good morning. It's {dateformat(datetime.now(tz=et))} in "
-                "New York City, and the Spelling Bee's gears are a-grinding. Reply to "
+                f"New York City, {random.choice(sentiments)} Reply to "
                 "this message with words that fit to help complete today's puzzle."
             )
             await channel.send(content,
@@ -302,8 +314,8 @@ guild_ids = [708955889276551198]
 
 @bot.slash_command(guild_ids=guild_ids)
 async def start_puzzling(ctx: ApplicationContext, time: Option(
-    str,
-    "What time? This is based on the New York Times' time zone.",
+    str, "Time of day in NYC. If the time has passed today, you'll also "
+    "receive a puzzle immediately.",
     choices=BeeBotConfig.get_timing_choices(),
     default=BeeBotConfig.get_timing_choices()[0])):
     "Start receiving Spelling Bees here!"
