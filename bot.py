@@ -101,7 +101,6 @@ class BeeBot(discord.Bot):
             self.ensure_todays_puzzle())
 
     async def on_connect(self):
-        await super().on_connect()
         logger.info("BeeBot connected")
         if not self.initialized:
             await self.get_new_puzzle()
@@ -376,3 +375,5 @@ async def on_message(message: discord.Message):
             if not message.mention_everyone and message.guild.me.mentioned_in(
                     message):
                 await self.respond_to_guesses(message)
+
+        asyncio.create_task(self.register_commands())
