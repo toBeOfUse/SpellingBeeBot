@@ -108,11 +108,19 @@ class BeeBot(discord.Bot):
             for scheduled in self.schedule:
                 # TODO: execute outstanding posts
                 asyncio.create_task(self.daily_loop(scheduled))
+            self.init_responses()
             self.initialized = True
 
     @staticmethod
     def get_current_date():
         return datetime.now(tz=et).strftime("%Y-%m-%d")
+
+    @property
+    def guild_ids(self):
+        if "Test" in self.user.name:
+            return [708955889276551198]
+        else:
+            return None
 
     async def ensure_todays_puzzle(self):
         """
@@ -307,19 +315,17 @@ class BeeBot(discord.Bot):
             return existing[0]
         return None
 
+    def init_responses(self):
 
-bot = BeeBot()
-guild_ids = [708955889276551198]
-
-
-@bot.slash_command(guild_ids=guild_ids)
+        @self.slash_command(guild_ids=self.guild_ids)
 async def start_puzzling(ctx: ApplicationContext, time: Option(
-    str, "Time of day in NYC. If the time has passed today, you'll also "
+            str,
+            "Time of day in NYC. If the time has passed today, you'll also "
     "receive a puzzle immediately.",
     choices=BeeBotConfig.get_timing_choices(),
     default=BeeBotConfig.get_timing_choices()[0])):
     "Start receiving Spelling Bees here!"
-    response = await bot.add_scheduled_post(
+            response = await self.add_scheduled_post(
         ScheduledPost(guild_id=ctx.guild_id,
                       channel_id=ctx.channel_id,
                       timing=BeeBotConfig.get_hour_for_choice(time)))
@@ -329,20 +335,20 @@ async def start_puzzling(ctx: ApplicationContext, time: Option(
     logger.info(f"notifying with response {response}")
     await ctx.respond(response)
 
-
-@bot.slash_command(guild_ids=guild_ids)
+        @self.slash_command(guild_ids=self.guild_ids)
 async def stop_puzzling(ctx: ApplicationContext):
     "Stop receiving Spelling Bees here!"
-    existed = bot.remove_scheduled_post(ctx.guild_id) is not None
+            existed = self.remove_scheduled_post(ctx.guild_id) is not None
     if not existed:
         await ctx.respond(
-            "This channel was already not receiving Spelling Bee posts!")
+                    "This channel was already not receiving Spelling Bee posts!"
+                )
     else:
         await ctx.respond(
-            "Okay! This channel will no longer receive Spelling Bee posts.")
+                    "Okay! This channel will no longer receive Spelling Bee posts."
+                )
 
-
-@bot.slash_command(guild_ids=guild_ids)
+        @self.slash_command(guild_ids=self.guild_ids)
 async def obtain_hint(ctx: ApplicationContext):
     "Get the Spelling Bee hint chart"
     scheduled: ScheduledPost = bot.session.execute(
@@ -359,7 +365,8 @@ async def obtain_hint(ctx: ApplicationContext):
         await ctx.respond(hints)
 
 
-@bot.event
+        @self.event
 async def on_message(message: discord.Message):
-    if not message.mention_everyone and message.guild.me.mentioned_in(message):
-        await bot.respond_to_guesses(message)
+            if not message.mention_everyone and message.guild.me.mentioned_in(
+                    message):
+                await self.respond_to_guesses(message)
