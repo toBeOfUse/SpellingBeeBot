@@ -147,7 +147,12 @@ class BeeBot(discord.Bot):
         """
         if SpellingBee.retrieve_saved(self.get_current_date(), bee_db) is None:
             logger.info("retrieving new puzzle...")
-            new_bee = await SpellingBee.fetch_from_nyt()
+            while True:
+                try:
+                    new_bee = await SpellingBee.fetch_from_nyt()
+                    break
+                except:
+                    await asyncio.sleep(5)
             logger.info("retrieved puzzle from NYT")
             new_bee.persist_to(bee_db)
             logger.info("rendering graphic...")
