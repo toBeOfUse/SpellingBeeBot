@@ -267,9 +267,14 @@ class BeeBot(discord.Bot):
                 f"New York City, {random.choice(sentiments)} Reply to "
                 "this message with words that fit to help complete today's puzzle."
             )
-            await channel.send(content,
-                               file=discord.File(BytesIO(bee.image),
-                                                 "bee." + bee.image_file_type))
+            await channel.send(
+                content,
+                file=discord.File(
+                    BytesIO(bee.image),
+                    filename="bee." + bee.image_file_type,
+                    description=
+                    f"Spelling Bee Puzzle. Center Letter: {bee.center}. " +
+                    f"Outside letters: {', '.join(bee.outside)}."))
         status_message = await channel.send(self.get_status_message(bee))
         bee.metadata = {"status_message_id": status_message.id}
         if old_session_id:
