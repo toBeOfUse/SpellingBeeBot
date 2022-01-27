@@ -5,10 +5,10 @@ name = "pypi"
 
 [packages]
 sqlalchemy = "*"
-py-cord = {git = "https://github.com/toBeOfUse/pycord"}
 tzdata = "*"
 aiocron = "*"
 bee-engine = {git = "https://github.com/tobeofuse/bee-engine"}
+py-cord = {git = "https://github.com/Pycord-Development/pycord"}
 
 [dev-packages]
 yapf = "*"

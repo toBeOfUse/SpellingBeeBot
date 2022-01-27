@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "f0e09e613299d1b8e5255ef42606c84549bbf5d22646199e667c52d843ea5e61"
+            "sha256": "0aefd105501619475e20890c58f61b78ca203ec5dfd6febb6879f5caba6cd18e"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -32,9 +32,7 @@
             "version": "==3.0.0"
         },
         "aiohttp": {
-            "extras": [
-                "speedups"
-            ],
+            "extras": [],
             "hashes": [
                 "sha256:01d7bdb774a9acc838e6b8f1d114f45303841b89b95984cbb7d80ea41172a9e3",
                 "sha256:03a6d5349c9ee8f79ab3ff3694d6ce1cfc3ced1c9d36200cb8f08ba06bd3b782",
@@ -138,7 +136,7 @@
         },
         "bee-engine": {
             "git": "https://github.com/tobeofuse/bee-engine",
-            "ref": "3b2aaa52c0f822f6231a113866d71eff81afa9a5"
+            "ref": "e7907c4170dbaaa1f27df770f9b08224eb34d6ef"
         },
         "brotli": {
             "hashes": [
@@ -219,7 +217,7 @@
                 "sha256:98c276b7e4f0caf01e5c7176765c104ffa1aa1461d63b2053b04ab663cf7052b",
                 "sha256:b0b9929cf5dba005178d746a8036fcf0025550f498ca54db61873322384783bc"
             ],
-            "markers": "python_full_version >= '3.5.0'",
+            "markers": "python_version >= '3.5'",
             "version": "==2.5.2"
         },
         "cchardet": {
@@ -316,7 +314,7 @@
                 "sha256:876d180e9d7432c5d1dfd4c5d26b72f099d503e8fcc0feb7532c9289be60fcbd",
                 "sha256:cb957888737fc0bbcd78e3df769addb41fd1ff8cf950dc9e7ad7793f1bf44455"
             ],
-            "markers": "python_full_version >= '3.5.0'",
+            "markers": "python_version >= '3.5'",
             "version": "==2.0.10"
         },
         "croniter": {
@@ -474,7 +472,7 @@
                 "sha256:84d9dd047ffa80596e0f246e2eab0b391788b0503584e8945f2368256d2735ff",
                 "sha256:9d643ff0a55b762d5cdb124b8eaa99c66322e2157b69160bc32796e824360e6d"
             ],
-            "markers": "python_full_version >= '3.5.0'",
+            "markers": "python_version >= '3.5'",
             "version": "==3.3"
         },
         "inflect": {
@@ -589,8 +587,8 @@
             "version": "==9.0.0"
         },
         "py-cord": {
-            "git": "https://github.com/toBeOfUse/pycord",
-            "ref": "8e2c69590097097e9ba08ea664cd298f909e8aec"
+            "git": "https://github.com/Pycord-Development/pycord",
+            "ref": "eb981d3132e224cf3e22db98e7eb62cca5b8d243"
         },
         "pycares": {
             "hashes": [
