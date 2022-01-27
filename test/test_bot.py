@@ -78,14 +78,14 @@ class BotTest(IsolatedAsyncioTestCase):
         await self.bot.todays_puzzle_ready
         self.bot.ensure_todays_puzzle.assert_not_called()
 
-    async def test_loop_fires(self):
+    async def test_cron_fires(self):
         test_post = self.get_future_post(seconds=1)
         self.bot.send_scheduled_post = AsyncMock()
         await self.bot.add_scheduled_post(test_post)
         await asyncio.sleep(2)
         self.bot.send_scheduled_post.assert_called_once_with(test_post)
 
-    async def test_loop_cancels(self):
+    async def test_cron_cancels(self):
         # test that posts won't be posted if they are deleted before their time:
         test_post = self.get_future_post(seconds=1)
         self.bot.send_scheduled_post = AsyncMock()

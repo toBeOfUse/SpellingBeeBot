@@ -93,6 +93,7 @@ class BeeBot(discord.Bot):
         logger.info("constructing new BeeBot!")
 
         self.initialized = False
+        self.scheduled_jobs: dict[int, aiocron.Cron] = {}
 
         aiocron.crontab("0 3 * * *", tz=et, func=self.get_new_puzzle)
 
@@ -175,7 +176,7 @@ class BeeBot(discord.Bot):
             if not_up_to_date:
                 asyncio.create_task(self.send_scheduled_post(new))
 
-        asyncio.create_task(self.daily_loop(new))
+        self.add_to_cron(new)
 
         hours = round(new.seconds_until_next_time() / 60 / 60)
         # TODO: use timestamp embedding
@@ -256,27 +257,19 @@ class BeeBot(discord.Bot):
         status_message = await channel.send(self.get_status_message(bee))
         bee.metadata = {"status_message_id": status_message.id}
 
-    async def daily_loop(self, scheduled: ScheduledPost):
-        while True:
-            seconds = scheduled.seconds_until_next_time()
-            logger.info(
-                f"sending puzzle to guild {self.get_guild(scheduled.guild_id).name} "
-                f"in {seconds/60/60} hours")
-            await asyncio.sleep(seconds)
-            # exit the loop if the timing has changed for this scheduled post
-            # while we were sleeping
-            live_scheduled_post_row = self.session.execute(
-                select(ScheduledPost.timing).where(
-                    ScheduledPost.id == scheduled.id)).first()
-            if (live_scheduled_post_row is None
-                    or live_scheduled_post_row[0] != scheduled.timing):
-                break
-            await self.send_scheduled_post(scheduled)
-            logger.info(
-                f"sent puzzle to guild {self.get_guild(scheduled.guild_id).name}"
-            )
-            # just to make completely sure we won't double post
-            await asyncio.sleep(1)
+    def add_to_cron(self, scheduled: ScheduledPost) -> aiocron.Cron:
+        hours = int(scheduled.timing)
+        minutes = int(scheduled.timing % 1 * 60)
+        seconds = int(scheduled.timing % 1 * 60 % 1 * 60)
+        logger.info(f"using aiocron to schedule posting job "
+                    f"for \"{self.get_guild(scheduled.guild_id)}\" "
+                    f"at {hours:02}:{minutes:02}:{seconds:02} US/Eastern")
+        job = aiocron.crontab(f"{minutes} {hours} * * * {seconds}",
+                              tz=et,
+                              func=self.send_scheduled_post,
+                              args=(scheduled, ))
+        self.scheduled_jobs[scheduled.guild_id] = job
+        return job
 
     async def respond_to_guesses(self, message: discord.Message):
         guild_id = message.guild.id
@@ -306,6 +299,11 @@ class BeeBot(discord.Bot):
         exists; returns it, in that case (the current_session field may need to
         be copied to a new scheduled post for this channel.)
         """
+        if guild_id in self.scheduled_jobs:
+            logger.info(
+                f"cancelling aiocron job for \"{self.get_guild(guild_id)}\"")
+            self.scheduled_jobs[guild_id].stop()
+            del self.scheduled_jobs[guild_id]
         existing = self.session.execute(
             select(ScheduledPost).where(
                 ScheduledPost.guild_id == guild_id)).fetchone()
