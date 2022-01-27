@@ -102,12 +102,17 @@ class BeeBot(discord.Bot):
             self.ensure_todays_puzzle())
 
     async def on_connect(self):
-        logger.info("BeeBot connected")
+        """Overriding this to keep pycord from trying to register slash commands
+        before they're created in on_ready"""
+        pass
+
+    async def on_ready(self):
+        logger.info("BeeBot ready")
         if not self.initialized:
             await self.get_new_puzzle()
             for scheduled in self.schedule:
-                # TODO: execute outstanding posts
-                asyncio.create_task(self.daily_loop(scheduled))
+                # TODO: execute outstanding posts, if any
+                self.add_to_cron(scheduled)
             self.init_responses()
             self.initialized = True
 

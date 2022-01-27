@@ -54,7 +54,7 @@ class BotTest(IsolatedAsyncioTestCase):
                                        return_value=channel)
 
     async def asyncSetUp(self) -> None:
-        await self.bot.on_connect()
+        await self.bot.on_ready()
 
     def tearDown(self) -> None:
         self.bot.session.close()
