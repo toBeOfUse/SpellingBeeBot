@@ -172,6 +172,7 @@ class BeeBot(discord.Bot):
         # immediately send a puzzle if the time for the puzzle to be sent today
         # has passed and there wasn't already a puzzle for this day in this
         # channel already
+        sending_now = ""
         if hourable.now(tz=et).decimal_hours >= new.timing:
             hadnt_sent_yet = (not existed or not existed.current_session
                               or existed.channel_id != new.channel_id)
@@ -180,12 +181,13 @@ class BeeBot(discord.Bot):
                                                 self.get_current_date())
             if not_up_to_date:
                 asyncio.create_task(self.send_scheduled_post(new))
+                sending_now = "now and "
 
         self.add_to_cron(new)
 
         hours = round(new.seconds_until_next_time() / 60 / 60)
         # TODO: use timestamp embedding
-        hours_statement = f"There will be a new puzzle in about {hours} hours."
+        hours_statement = f"There will be a new puzzle {sending_now}in about {hours} hours."
         if existed is not None:
             if existed.channel_id != new.channel_id:
                 return (
@@ -223,6 +225,7 @@ class BeeBot(discord.Bot):
                 bee_base = SpellingBee.retrieve_saved(db_path=bee_db)
             bee = SessionBee(bee_base)
             bee.persist_to(bee_db)
+            old_session_id = scheduled.current_session
             scheduled.current_session = bee.session_id
             self.session.add(scheduled)
             self.session.flush()
@@ -261,6 +264,21 @@ class BeeBot(discord.Bot):
                                                  "bee." + bee.image_file_type))
         status_message = await channel.send(self.get_status_message(bee))
         bee.metadata = {"status_message_id": status_message.id}
+        if old_session_id:
+            old_session = SessionBee.retrieve_saved(old_session_id, bee_db)
+            if old_session and old_session.day != self.get_current_date():
+                ungotten = old_session.get_unguessed_words()
+                if len(ungotten) >= 2:
+                    yesterday_message = (
+                        f"(The most common word no one got yesterday was "
+                        f"\"{ungotten[-1]};\" the most common word was \"{ungotten[0]}.\")"
+                    )
+                    await channel.send(yesterday_message)
+                elif len(ungotten) == 1:
+                    yesterday_message = (
+                        f"(The only word that no one got yesterday was \"{ungotten[0]}.\")"
+                    )
+                    await channel.send(yesterday_message)
 
     def add_to_cron(self, scheduled: ScheduledPost) -> aiocron.Cron:
         hours = int(scheduled.timing)
@@ -341,15 +359,15 @@ class BeeBot(discord.Bot):
 
         @self.slash_command(guild_ids=self.guild_ids)
         async def stop_puzzling(ctx: ApplicationContext):
-            "Stop receiving Spelling Bees here!"
+            "Stop receiving Spelling Bees in this server!"
             existed = self.remove_scheduled_post(ctx.guild_id) is not None
             if not existed:
                 await ctx.respond(
-                    "This channel was already not receiving Spelling Bee posts!"
+                    "This server was already not receiving Spelling Bee posts!"
                 )
             else:
                 await ctx.respond(
-                    "Okay! This channel will no longer receive Spelling Bee posts."
+                    "Okay! This server will no longer receive Spelling Bee posts."
                 )
 
         @self.slash_command(guild_ids=self.guild_ids)
@@ -366,7 +384,7 @@ class BeeBot(discord.Bot):
             elif scheduled[0].channel_id != ctx.channel_id:
                 await ctx.respond(
                     "This slash command is intended for the channel where "
-                    "the Spelling Bees are posted (<#{scheduled.channel_id}>)!",
+                    f"the Spelling Bees are posted (<#{scheduled[0].channel_id}>)!",
                     ephemeral=True)
             else:
                 bee = SessionBee.retrieve_saved(scheduled[0].current_session,
@@ -378,7 +396,16 @@ class BeeBot(discord.Bot):
         async def explain_rules(ctx: ApplicationContext):
             "Learn the rules of the Spelling Bee!"
             with open("explanation.txt", encoding="utf-8") as explanation_file:
-                await ctx.respond(explanation_file.read())
+                explanation = explanation_file.read()
+                scheduled: ScheduledPost = self.session.execute(
+                    select(ScheduledPost).where(
+                        ScheduledPost.guild_id == ctx.guild_id)).first()
+                if (scheduled is not None
+                        and scheduled[0].channel_id != ctx.channel_id):
+                    explanation += (
+                        "\n(This server is already receiving Spelling Bee posts "
+                        f"in the <#{scheduled[0].channel_id}> channel!)")
+                await ctx.respond(explanation)
 
         @self.event
         async def on_message(message: discord.Message):
