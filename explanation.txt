@@ -1,5 +1,5 @@
 - The Spelling Bee is an anagram game published by the New York Times.
 - To play, simply make words from the provided letters, using each as many times as you please. The words must be at least four letters long, and must use the center letter at least once. The list of accepted words is edited by Sam Ezersky (@thegridkid on social media.)
 - A special category of words is the pangrams, which use every letter in the puzzle; there is at least one pangram in each puzzle.
-- A new puzzle is published each day at 3AM New York City time.
+- A new puzzle is published each day at 3 AM New York City time.
 - Use the /start_puzzling slash command to start playing and join the #HiveMind!

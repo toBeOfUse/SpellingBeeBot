@@ -171,7 +171,7 @@ class BeeBot(discord.Bot):
 
         # immediately send a puzzle if the time for the puzzle to be sent today
         # has passed and there wasn't already a puzzle for this day in this
-        # channel already
+        # channel
         sending_now = ""
         if hourable.now(tz=et).decimal_hours >= new.timing:
             hadnt_sent_yet = (not existed or not existed.current_session
@@ -186,7 +186,6 @@ class BeeBot(discord.Bot):
         self.add_to_cron(new)
 
         hours = round(new.seconds_until_next_time() / 60 / 60)
-        # TODO: use timestamp embedding
         hours_statement = f"There will be a new puzzle {sending_now}in about {hours} hours."
         if existed is not None:
             if existed.channel_id != new.channel_id:
@@ -271,7 +270,7 @@ class BeeBot(discord.Bot):
                 if len(ungotten) >= 2:
                     yesterday_message = (
                         f"(The most common word no one got yesterday was "
-                        f"\"{ungotten[-1]};\" the most common word was \"{ungotten[0]}.\")"
+                        f"\"{ungotten[-1]};\" the least common word was \"{ungotten[0]}.\")"
                     )
                     await channel.send(yesterday_message)
                 elif len(ungotten) == 1:
