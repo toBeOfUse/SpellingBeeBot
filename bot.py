@@ -403,7 +403,8 @@ class BeeBot(discord.Bot):
         @self.slash_command(guild_ids=self.guild_ids)
         async def explain_rules(ctx: ApplicationContext):
             "Learn the rules of the Spelling Bee!"
-            with open("explanation.txt", encoding="utf-8") as explanation_file:
+            with open("rules-explanation.txt",
+                      encoding="utf-8") as explanation_file:
                 explanation = explanation_file.read()
                 scheduled: ScheduledPost = self.session.execute(
                     select(ScheduledPost).where(
@@ -414,6 +415,13 @@ class BeeBot(discord.Bot):
                         "\n(This server is already receiving Spelling Bee posts "
                         f"in the <#{scheduled[0].channel_id}> channel!)")
                 await ctx.respond(explanation)
+
+        @self.slash_command(guild_ids=self.guild_ids)
+        async def help(ctx: ApplicationContext):
+            "Have the slash commands explained!"
+            with open("commands-explanation.txt",
+                      encoding="utf-8") as explanation_file:
+                await ctx.respond(explanation_file.read())
 
         @self.event
         async def on_message(message: discord.Message):
