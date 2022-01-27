@@ -382,8 +382,8 @@ class BeeBot(discord.Bot):
 
         @self.event
         async def on_message(message: discord.Message):
-            if not message.mention_everyone and message.guild.me.mentioned_in(
-                    message):
+            if (not message.author.bot and not message.mention_everyone
+                    and message.guild.me.mentioned_in(message)):
                 await self.respond_to_guesses(message)
 
         asyncio.create_task(self.register_commands())
