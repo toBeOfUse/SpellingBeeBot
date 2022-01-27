@@ -107,7 +107,8 @@ class BeeBot(discord.Bot):
         pass
 
     async def on_ready(self):
-        logger.info("BeeBot ready")
+        logger.info(f"BeeBot ready. In {len(self.guilds)} guilds:")
+        logger.info(self.guilds)
         if not self.initialized:
             await self.get_new_puzzle()
             for scheduled in self.schedule:
@@ -115,6 +116,14 @@ class BeeBot(discord.Bot):
                 self.add_to_cron(scheduled)
             self.init_responses()
             self.initialized = True
+
+    async def on_guild_join(self, guild: discord.Guild):
+        logger.info("Added to guild!")
+        logger.info(str(guild))
+
+    async def on_guild_remove(self, guild: discord.Guild):
+        logger.info("removed from guild!")
+        logger.info(str(guild))
 
     @staticmethod
     def get_current_date():
