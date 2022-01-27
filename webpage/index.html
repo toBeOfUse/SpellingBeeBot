@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spelling Bee Bot</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@exampledev/new.css@1.1.2/new.min.css">
+    <style>
+        h1,
+        h3 {
+            margin-bottom: 1em;
+        }
+
+        #usage-container {
+            display: flex;
+            flex-direction: row;
+            width: 100%
+        }
+
+        #usage-text {
+            border: 3px solid lightblue;
+            border-radius: 3px;
+            margin-right: 10px;
+            padding: 10px;
+            background-color: lightgray;
+        }
+
+        #usage-image {
+            max-width: 40%;
+            align-self: center;
+            height: auto;
+            border-radius: 3px;
+            border: 3px solid lightblue;
+            margin: 0;
+        }
+
+        @media (max-width: 700px) {
+            html {
+                font-size: 70%;
+            }
+
+            #usage-container {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            #usage-text {
+                margin: 0;
+            }
+
+            #usage-image {
+                max-width: 100%;
+                margin: 10px 0;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <h2>Play the NYT Spelling Bee with your friends on Discord!</h2>
+    <p>This is a Discord bot that allows you to play the New York Times Spelling Bee with your friends on a Discord
+        server! </p>
+    <p>Click <a
+            href="https://discord.com/api/oauth2/authorize?client_id=936097636153425981&permissions=274877958208&scope=applications.commands%20bot">here</a>
+        to add it to a server that you own.</p>
+    <p>Every day, this bot will post the New York Times Spelling Bee puzzle at a time that you specify. You and your
+        friends can reply to the puzzle with words that fit; the bot will react to accepted words and keep a running
+        tally of the words that you’ve found and the ranking you have achieved thereby.</p>
+    <p>I am not affliated with the New York Times 😔.</p>
+    <div id="usage-container">
+        <div id="usage-text">
+            <h3>Usage:</h3>
+            <ul>
+                <li>/start_puzzling: retrieves a puzzle and lets you set a time for daily posts.</li>
+                <li>/stop_puzzling: ceases daily posts in the server.</li>
+                <li>/obtain_hint: gives you a version of the official hint chart with clues to the words that you
+                    haven’t
+                    found
+                    yet.</li>
+                <li>/explain_rules: gives you a complete rundown of the rules of the Spelling Bee.</li>
+                <li>/help: explains the slash commands</li>
+            </ul>
+        </div>
+        <img alt="Someone getting a post from the SpellingBee bot in their server and getting three words right"
+            src="demo.jpg" id="usage-image">
+    </div>
+</body>
+
+</html>
