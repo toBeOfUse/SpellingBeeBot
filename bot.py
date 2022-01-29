@@ -1,6 +1,7 @@
 import asyncio
 from datetime import datetime
 from io import BytesIO
+from pprint import pformat
 import random
 from typing import Optional
 import sys
@@ -118,12 +119,10 @@ class BeeBot(discord.Bot):
             self.initialized = True
 
     async def on_guild_join(self, guild: discord.Guild):
-        logger.info("Added to guild!")
-        logger.info(str(guild))
+        logger.info(f"Added to guild \"{guild}\"!")
 
     async def on_guild_remove(self, guild: discord.Guild):
-        logger.info("removed from guild!")
-        logger.info(str(guild))
+        logger.info("removed from guild \"{guild}\"")
 
     @staticmethod
     def get_current_date():
@@ -321,9 +320,10 @@ class BeeBot(discord.Bot):
                 and ScheduledPost.channel_id == channel_id)).first()
         if guessing_session_id is None or guessing_session_id[0] is None:
             logger.warn(
-                f"tried to respond to message attached to no active session "
-                "(guild: {message.guild.id}, channel: {message.channel.id}, "
-                "message: {message.id}})")
+                f"tried to respond to message attached to no active session: "
+                f"guild {message.guild} ({message.guild.id}), "
+                f"channel {message.channel} ({message.channel.id}), "
+                f"message {message.content} ({message.id})")
             return
         bee = SessionBee.retrieve_saved(guessing_session_id[0], bee_db)
         bee.persist_to(bee_db)
@@ -438,5 +438,14 @@ class BeeBot(discord.Bot):
             if (not message.author.bot and not message.mention_everyone
                     and message.guild.me.mentioned_in(message)):
                 await self.respond_to_guesses(message)
+            with open("logs/incoming.log", "a+", encoding="utf-8") as logfile:
+                message_log = {
+                    "time": str(datetime.now(tz=et)),
+                    "guild": str(message.guild),
+                    "channel": str(message.channel),
+                    "message": message.content,
+                }
+                logfile.write(pformat(message_log, sort_dicts=False))
+                logfile.write("\n")
 
         asyncio.create_task(self.register_commands())
