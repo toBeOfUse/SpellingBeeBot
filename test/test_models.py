@@ -55,6 +55,8 @@ class ScheduledPostTest(TestCase):
         mock_real_time = 0
         if now.decimal_hours > self.morning_post.timing:
             mock_real_time = (24 - now.decimal_hours) * 60 * 60
+        else:
+            mock_real_time = -now.decimal_hours * 60 * 60
         mock_real_time += self.morning_post.timing * 60 * 60
         self.assertLessEqual(abs(mock_real_time - real_time), 1)
 
