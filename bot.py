@@ -301,11 +301,11 @@ class BeeBot(discord.Bot):
                     f"Spelling Bee Puzzle. Center Letter: {bee.center}. " +
                     f"Outside letters: {', '.join(bee.outside)}."))
             external_logger.info(
-                f"Outgoing puzzle message: {get_message_log(puzzle_message)}")
+                f"Outgoing puzzle message:\n{get_message_log(puzzle_message)}")
         status_message = await channel.send(self.get_status_message(bee))
         bee.metadata = {"status_message_id": status_message.id}
         external_logger.info(
-            f"Outgoing status message: {get_message_log(status_message)}")
+            f"Outgoing status message:\n{get_message_log(status_message)}")
         if old_session_id:
             old_session = SessionBee.retrieve_saved(old_session_id, bee_db)
             if old_session and old_session.day != self.get_current_date():
@@ -321,7 +321,7 @@ class BeeBot(discord.Bot):
                     )
                 yesterday_message = await channel.send(yesterday_message)
                 external_logger.info(
-                    f"Outgoing yesterday message: {get_message_log(yesterday_message)}"
+                    f"Outgoing yesterday message:\n{get_message_log(yesterday_message)}"
                 )
 
     def add_to_cron(self, scheduled: ScheduledPost) -> aiocron.Cron:
@@ -488,7 +488,7 @@ class BeeBot(discord.Bot):
             if (not message.author.bot and not message.mention_everyone
                     and message.guild.me.mentioned_in(message)):
                 await self.respond_to_guesses(message)
-                external_logger.info("Incoming message:" +
+                external_logger.info("Incoming message:\n" +
                                      get_message_log(message))
 
         asyncio.create_task(self.register_commands())
