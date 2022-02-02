@@ -143,7 +143,8 @@ class BeeBot(discord.Bot):
         internal_logger.info(f"Added to guild \"{guild}\"!")
 
     async def on_guild_remove(self, guild: discord.Guild):
-        internal_logger.info("removed from guild \"{guild}\"")
+        internal_logger.info(f"removed from guild \"{guild}\"")
+        self.remove_scheduled_post(guild.id)
 
     @staticmethod
     def get_current_date():
