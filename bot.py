@@ -133,9 +133,16 @@ class BeeBot(discord.Bot):
         internal_logger.info(self.guilds)
         if not self.initialized:
             await self.get_new_puzzle()
+            in_guilds = set(x.id for x in self.guilds)
             for scheduled in self.schedule:
                 # TODO: execute outstanding posts, if any
-                self.add_to_cron(scheduled)
+                if scheduled.guild_id in in_guilds:
+                    self.add_to_cron(scheduled)
+                else:
+                    internal_logger.warn(
+                        "scheduled post for guild that bot is not in!"
+                        f" guild id is {scheduled.guild_id}")
+                    # TODO: delete ScheduledPost when brave enough
             self.init_responses()
             self.initialized = True
 
