@@ -10,9 +10,10 @@ from logging import FileHandler, getLogger, StreamHandler
 from zoneinfo import ZoneInfo
 
 import aiocron
-import discord
+import disnake as discord
+from disnake import ApplicationCommandInteraction
+from disnake.ext.commands import Param, InteractionBot
 from bee_engine import SessionBee, SpellingBee
-from discord.commands import ApplicationContext, Option
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -101,10 +102,11 @@ class BeeBotConfig:
             return hour
 
 
-class BeeBot(discord.Bot):
+class BeeBot(InteractionBot):
 
     def __init__(self) -> None:
-        super().__init__()
+        intents = discord.Intents.default()
+        super().__init__(intents=intents, sync_commands=True)
         self.db_engine = create_db(schedule_db)
         self.session = Session(self.db_engine)
         self.todays_puzzle_ready: Optional[asyncio.Task] = None
@@ -394,12 +396,12 @@ class BeeBot(discord.Bot):
     def init_responses(self):
 
         @self.slash_command(guild_ids=self.guild_ids)
-        async def start_puzzling(ctx: ApplicationContext, time: Option(
-            str,
-            "Time of day in NYC. If the time has passed today, you'll also "
+        async def start_puzzling(ctx: ApplicationCommandInteraction, time: str = Param(
+            name="time",
+            description="Time of day in NYC. If the time has passed today, you'll also "
             "receive a puzzle immediately.",
-            choices=BeeBotConfig.get_timing_choices(),
-            required=True)):
+            choices=BeeBotConfig.get_timing_choices()
+        )):
             "Start receiving Spelling Bees here!"
             response = await self.add_scheduled_post(
                 ScheduledPost(guild_id=ctx.guild_id,
@@ -411,10 +413,10 @@ class BeeBot(discord.Bot):
             external_logger.info(
                 "Incoming command: /start_puzzling\n" +
                 f"Responding to /start_puzzling with \"{response}\"")
-            await ctx.respond(response)
+            await ctx.response.send_message(response)
 
         @self.slash_command(guild_ids=self.guild_ids)
-        async def stop_puzzling(ctx: ApplicationContext):
+        async def stop_puzzling(ctx: ApplicationCommandInteraction):
             "Stop receiving Spelling Bees in this server!"
             existed = self.remove_scheduled_post(ctx.guild_id) is not None
             if not existed:
@@ -428,10 +430,10 @@ class BeeBot(discord.Bot):
             external_logger.info(
                 "Incoming command: /stop_puzzling\n" +
                 f"Responding to /start_puzzling with \"{response}\"")
-            await ctx.respond(response)
+            await ctx.response.send_message(response)
 
         @self.slash_command(guild_ids=self.guild_ids)
-        async def obtain_hint(ctx: ApplicationContext):
+        async def obtain_hint(ctx: ApplicationCommandInteraction):
             "Get an up-to-date Spelling Bee hint chart!"
             scheduled: ScheduledPost = self.session.execute(
                 select(ScheduledPost).where(
@@ -440,29 +442,29 @@ class BeeBot(discord.Bot):
                 response = (
                     "Before using this slash command in this server, use "
                     "/start_puzzling to start getting puzzles!")
-                await ctx.respond(response, ephemeral=True)
+                await ctx.response.send_message(response, ephemeral=True)
             elif scheduled[0].channel_id != ctx.channel_id:
                 response = (
                     "This slash command is intended for the channel where "
                     f"the Spelling Bees are posted (<#{scheduled[0].channel_id}>)!"
                 )
-                await ctx.respond(response, ephemeral=True)
+                await ctx.response.send_message(response, ephemeral=True)
             else:
                 bee = SessionBee.retrieve_saved(scheduled[0].current_session,
                                                 bee_db)
                 if bee is None:
                     response = "Wait until a puzzle is posted here first!"
-                    await ctx.respond(response, ephemeral=True)
+                    await ctx.response.send_message(response, ephemeral=True)
                 else:
                     response = bee.get_unguessed_hints(
                     ).format_all_for_discord()
-                    await ctx.respond(response)
+                    await ctx.response.send_message(response)
             external_logger.info(
                 "Incoming command: /obtain_hint\n" +
                 f"Responding to /obtain_hint with:\n{response}")
 
         @self.slash_command(guild_ids=self.guild_ids)
-        async def explain_rules(ctx: ApplicationContext):
+        async def explain_rules(ctx: ApplicationCommandInteraction):
             "Learn the rules of the Spelling Bee!"
             with open("rules-explanation.txt",
                       encoding="utf-8") as explanation_file:
@@ -478,10 +480,10 @@ class BeeBot(discord.Bot):
                 external_logger.info(
                     "Incoming command: /explain_rules\n" +
                     f"responding to /explain_rules with: \n{explanation}")
-                await ctx.respond(explanation)
+                await ctx.response.send_message(explanation)
 
         @self.slash_command(guild_ids=self.guild_ids)
-        async def help(ctx: ApplicationContext):
+        async def help(ctx: ApplicationCommandInteraction):
             "Have the slash commands explained!"
             with open("commands-explanation.txt",
                       encoding="utf-8") as explanation_file:
@@ -489,7 +491,7 @@ class BeeBot(discord.Bot):
                 external_logger.info(
                     "Incoming command: /help\n" +
                     f"responding to /explain_rules with: \n{help_message}")
-                await ctx.respond(help_message)
+                await ctx.response.send_message(help_message)
 
         @self.event
         async def on_message(message: discord.Message):
@@ -499,4 +501,4 @@ class BeeBot(discord.Bot):
                 external_logger.info("Incoming message:\n" +
                                      get_message_log(message))
 
-        asyncio.create_task(self.register_commands())
+        self._schedule_app_command_preparation()
