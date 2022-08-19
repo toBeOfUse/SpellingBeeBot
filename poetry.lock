@@ -82,7 +82,7 @@ tests_no_zope = ["coverage[toml] (>=5.0.2)", "hypothesis", "pympler", "pytest (>
 
 [[package]]
 name = "bee_engine"
-version = "0.9.5"
+version = "0.9.6"
 description = ""
 category = "main"
 optional = false
@@ -100,7 +100,7 @@ pillow = "*"
 type = "git"
 url = "https://github.com/tobeofuse/bee-engine.git"
 reference = "master"
-resolved_reference = "585dcfbed13950e98ada1636eb48c0308d201d8b"
+resolved_reference = "754f1180e4a3a2afecc7b66fe311f42ba5bd0871"
 
 [[package]]
 name = "brotli"
