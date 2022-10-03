@@ -5,7 +5,7 @@ from unittest.mock import Mock, AsyncMock, patch
 from pathlib import Path
 from bot import BeeBot, SpellingBee, et
 import bot
-import discord
+from disnake.ext.commands import InteractionBot
 from freezegun import freeze_time
 
 from models import ScheduledPost, hourable
@@ -39,8 +39,8 @@ class BotTest(IsolatedAsyncioTestCase):
         bot.bee_db = "data/mock_puzzles.db"
         bot.schedule_db = "data/mock_schedule.db"
         self.bot = BeeBot()
-        discord.Bot.on_connect = AsyncMock(name="Bot.on_connect")
-        discord.Bot.get_guild = Mock(name="get_guild")
+        InteractionBot.on_connect = AsyncMock(name="Bot.on_connect")
+        InteractionBot.get_guild = Mock(name="get_guild")
         typing_manager = Mock(name="Channel.typing() result")
         typing_manager.__aenter__ = AsyncMock()
         typing_manager.__aexit__ = AsyncMock()
@@ -50,7 +50,7 @@ class BotTest(IsolatedAsyncioTestCase):
         message = Mock()
         message.id = -1
         channel.send = AsyncMock(name="Channel.send", return_value=message)
-        discord.Bot.get_channel = Mock(name="Bot.get_channel",
+        InteractionBot.get_channel = Mock(name="Bot.get_channel",
                                        return_value=channel)
 
     async def asyncSetUp(self) -> None:
