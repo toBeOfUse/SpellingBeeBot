@@ -293,7 +293,6 @@ class BeeBot(InteractionBot):
                 "and yet the world spins on.", "and don't they know it.",
                 "and the sky is taking the day off today.",
                 "and the sky is looking a little bluer today.",
-                "and \"unmute\" and \"echolocate\" are still words.",
                 "despite our best efforts.",
                 "and I still don't have a real job."
             ]
@@ -321,18 +320,23 @@ class BeeBot(InteractionBot):
             if old_session and old_session.day != self.get_current_date():
                 ungotten = old_session.get_unguessed_words()
                 if len(ungotten) >= 2:
-                    yesterday_message = (
+                    yesterday_info = (
                         f"(The most common word no one got yesterday was "
                         f"\"{ungotten[-1]};\" the least common word was \"{ungotten[0]}.\")"
                     )
                 elif len(ungotten) == 1:
-                    yesterday_message = (
+                    yesterday_info = (
                         f"(The only word that no one got yesterday was \"{ungotten[0]}.\")"
                     )
-                yesterday_message = await channel.send(yesterday_message)
-                external_logger.info(
-                    f"Outgoing yesterday message:\n{get_message_log(yesterday_message)}"
-                )
+                else:
+                    yesterday_info = None
+                if yesterday_info is not None:
+                    yesterday_message = await channel.send(yesterday_info)
+                    external_logger.info(
+                        f"Outgoing yesterday message:\n{get_message_log(yesterday_message)}"
+                    )
+                else:
+                    external_logger.info("No yesterday message needed")
 
     def add_to_cron(self, scheduled: ScheduledPost) -> aiocron.Cron:
         hours = int(scheduled.timing)
