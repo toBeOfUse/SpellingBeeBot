@@ -259,6 +259,15 @@ class BeeBot(InteractionBot):
         stores the ID of that so it can be updated later.
         """
         channel = self.get_channel(scheduled.channel_id)
+        if channel is None:
+            internal_logger.warning(f"unable to \"get\" channel for post:")
+            internal_logger.warning(str(scheduled))
+            try:
+                channel = await self.fetch_channel(scheduled.channel_id)
+            except:
+                internal_logger.warning("also unable to fetch it via api")
+                return
+            internal_logger.warning("able to fetch it via api")
         async with channel.typing():
             await self.todays_puzzle_ready
             bee_base = SpellingBee.retrieve_saved(db_path=bee_db)
