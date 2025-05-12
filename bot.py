@@ -32,20 +32,20 @@ def get_message_log(message: discord.Message):
             "channel": str(message.channel),
             "message": message.content,
         },
-        sort_dicts=False)
+        sort_dicts=False,
+    )
 
 
 def logger_setup():
-    file_formatter = logging.Formatter("%(asctime)s %(levelname)s %(message)s",
-                                       "%Y-%m-%d %H:%M:%S")
+    file_formatter = logging.Formatter(
+        "%(asctime)s %(levelname)s %(message)s", "%Y-%m-%d %H:%M:%S"
+    )
 
     discord_logger = getLogger("discord")
     for handler in discord_logger.handlers:
         discord_logger.removeHandler(handler)
     discord_logger.setLevel(logging.DEBUG)
-    discord_file_handler = FileHandler("logs/discord.log",
-                                       mode="a+",
-                                       encoding="utf-8")
+    discord_file_handler = FileHandler("logs/discord.log", mode="a+", encoding="utf-8")
     discord_file_handler.setFormatter(file_formatter)
     discord_logger.addHandler(discord_file_handler)
     discord_stream_handler = StreamHandler(sys.stdout)
@@ -64,9 +64,9 @@ def logger_setup():
 
     external_logger = getLogger("BeeBot.External")
     external_logger.setLevel(logging.DEBUG)
-    external_file_handler = FileHandler("logs/communication.log",
-                                        mode="a+",
-                                        encoding="utf-8")
+    external_file_handler = FileHandler(
+        "logs/communication.log", mode="a+", encoding="utf-8"
+    )
     external_file_handler.setLevel(logging.DEBUG)
     external_file_handler.setFormatter(file_formatter)
     external_logger.addHandler(external_file_handler)
@@ -85,7 +85,7 @@ class BeeBotConfig:
         "Afternoon": 16,
         "Evening": 20,
         "As soon as a new puzzle is available": 3,
-        "Now, and 24 hours from now, and so on": -1
+        "Now, and 24 hours from now, and so on": -1,
     }
 
     @classmethod
@@ -122,8 +122,7 @@ class BeeBot(InteractionBot):
         aiocron.crontab("0 3 * * *", tz=et, func=self.get_new_puzzle)
 
     async def get_new_puzzle(self):
-        self.todays_puzzle_ready = asyncio.create_task(
-            self.ensure_todays_puzzle())
+        self.todays_puzzle_ready = asyncio.create_task(self.ensure_todays_puzzle())
 
     async def on_connect(self):
         """Overriding this to keep pycord from trying to register slash commands
@@ -143,16 +142,17 @@ class BeeBot(InteractionBot):
                 else:
                     internal_logger.warn(
                         "scheduled post for guild that bot is not in!"
-                        f" guild id is {scheduled.guild_id}")
+                        f" guild id is {scheduled.guild_id}"
+                    )
                     # TODO: delete ScheduledPost when brave enough
             self.init_responses()
             self.initialized = True
 
     async def on_guild_join(self, guild: discord.Guild):
-        internal_logger.info(f"Added to guild \"{guild}\"!")
+        internal_logger.info(f'Added to guild "{guild}"!')
 
     async def on_guild_remove(self, guild: discord.Guild):
-        internal_logger.info(f"removed from guild \"{guild}\"")
+        internal_logger.info(f'removed from guild "{guild}"')
         self.remove_scheduled_post(guild.id)
 
     @staticmethod
@@ -218,11 +218,15 @@ class BeeBot(InteractionBot):
         # channel
         sending_now = ""
         if hourable.now(tz=et).decimal_hours >= new.timing:
-            hadnt_sent_yet = (not existed or not existed.current_session
-                              or existed.channel_id != new.channel_id)
-            not_up_to_date = hadnt_sent_yet or (SessionBee.retrieve_saved(
-                existed.current_session, bee_db).day !=
-                                                self.get_current_date())
+            hadnt_sent_yet = (
+                not existed
+                or not existed.current_session
+                or existed.channel_id != new.channel_id
+            )
+            not_up_to_date = hadnt_sent_yet or (
+                SessionBee.retrieve_saved(existed.current_session, bee_db).day
+                != self.get_current_date()
+            )
             if not_up_to_date:
                 asyncio.create_task(self.send_scheduled_post(new))
                 sending_now = "now and "
@@ -230,16 +234,22 @@ class BeeBot(InteractionBot):
         self.add_to_cron(new)
 
         hours = round(new.seconds_until_next_time() / 60 / 60)
-        hours_statement = f"There will be a new puzzle {sending_now}in about {hours} hours."
+        hours_statement = (
+            f"There will be a new puzzle {sending_now}in about {hours} hours."
+        )
         if existed is not None:
             if existed.channel_id != new.channel_id:
                 return (
                     "Great! This channel will now receive puzzle posts instead "
-                    + "of that other one. " + hours_statement)
+                    + "of that other one. "
+                    + hours_statement
+                )
             elif existed.timing != new.timing:
                 return (
-                    f"Great! This channel will now receive puzzles at a new " +
-                    "time. " + hours_statement)
+                    f"Great! This channel will now receive puzzles at a new "
+                    + "time. "
+                    + hours_statement
+                )
             else:
                 return "Great! Nothing will change."
         else:
@@ -260,7 +270,7 @@ class BeeBot(InteractionBot):
         """
         channel = self.get_channel(scheduled.channel_id)
         if channel is None:
-            internal_logger.warning(f"unable to \"get\" channel for post:")
+            internal_logger.warning(f'unable to "get" channel for post:')
             internal_logger.warning(str(scheduled))
             try:
                 channel = await self.fetch_channel(scheduled.channel_id)
@@ -285,11 +295,11 @@ class BeeBot(InteractionBot):
             await asyncio.sleep(1)
 
             def datesuffix(d: int):
-                return str(d) + ('th' if 11 <= d <= 13 else {
-                    1: 'st',
-                    2: 'nd',
-                    3: 'rd'
-                }.get(d % 10, 'th'))
+                return str(d) + (
+                    "th"
+                    if 11 <= d <= 13
+                    else {1: "st", 2: "nd", 3: "rd"}.get(d % 10, "th")
+                )
 
             def dateformat(d: datetime):
                 return d.strftime("%A, %B ") + datesuffix(d.day)
@@ -299,11 +309,12 @@ class BeeBot(InteractionBot):
                 "for better or worse!",
                 "and tri-axle trucks are triangulating your location.",
                 "and today's quotidian bread is seeming a little more daily than usual.",
-                "and yet the world spins on.", "and don't they know it.",
+                "and yet the world spins on.",
+                "and don't they know it.",
                 "and the sky is taking the day off today.",
                 "and the sky is looking a little bluer today.",
                 "despite our best efforts.",
-                "and I still don't have a real job."
+                "and I still don't have a real job.",
             ]
             content = (
                 f"Good morning. It's {dateformat(datetime.now(tz=et))} in "
@@ -315,15 +326,18 @@ class BeeBot(InteractionBot):
                 file=discord.File(
                     BytesIO(bee.image),
                     filename="bee." + bee.image_file_type,
-                    description=
-                    f"Spelling Bee Puzzle. Center Letter: {bee.center}. " +
-                    f"Outside letters: {', '.join(bee.outside)}."))
+                    description=f"Spelling Bee Puzzle. Center Letter: {bee.center}. "
+                    + f"Outside letters: {', '.join(bee.outside)}.",
+                ),
+            )
             external_logger.info(
-                f"Outgoing puzzle message:\n{get_message_log(puzzle_message)}")
+                f"Outgoing puzzle message:\n{get_message_log(puzzle_message)}"
+            )
         status_message = await channel.send(self.get_status_message(bee))
         bee.metadata = {"status_message_id": status_message.id}
         external_logger.info(
-            f"Outgoing status message:\n{get_message_log(status_message)}")
+            f"Outgoing status message:\n{get_message_log(status_message)}"
+        )
         if old_session_id:
             old_session = SessionBee.retrieve_saved(old_session_id, bee_db)
             if old_session and old_session.day != self.get_current_date():
@@ -331,12 +345,10 @@ class BeeBot(InteractionBot):
                 if len(ungotten) >= 2:
                     yesterday_info = (
                         f"(The most common word no one got yesterday was "
-                        f"\"{ungotten[-1]};\" the least common word was \"{ungotten[0]}.\")"
+                        f'"{ungotten[-1]};" the least common word was "{ungotten[0]}.")'
                     )
                 elif len(ungotten) == 1:
-                    yesterday_info = (
-                        f"(The only word that no one got yesterday was \"{ungotten[0]}.\")"
-                    )
+                    yesterday_info = f'(The only word that no one got yesterday was "{ungotten[0]}.")'
                 else:
                     yesterday_info = None
                 if yesterday_info is not None:
@@ -353,12 +365,15 @@ class BeeBot(InteractionBot):
         seconds = int(scheduled.timing % 1 * 60 % 1 * 60)
         internal_logger.info(
             f"using aiocron to schedule posting job "
-            f"for \"{self.get_guild(scheduled.guild_id)}\" "
-            f"at {hours:02}:{minutes:02}:{seconds:02} US/Eastern")
-        job = aiocron.crontab(f"{minutes} {hours} * * * {seconds}",
-                              tz=et,
-                              func=self.send_scheduled_post,
-                              args=(scheduled, ))
+            f'for "{self.get_guild(scheduled.guild_id)}" '
+            f"at {hours:02}:{minutes:02}:{seconds:02} US/Eastern"
+        )
+        job = aiocron.crontab(
+            f"{minutes} {hours} * * * {seconds}",
+            tz=et,
+            func=self.send_scheduled_post,
+            args=(scheduled,),
+        )
         self.scheduled_jobs[scheduled.guild_id] = job
         return job
 
@@ -368,13 +383,16 @@ class BeeBot(InteractionBot):
         guessing_session_id = self.session.execute(
             select(ScheduledPost.current_session).where(
                 ScheduledPost.guild_id == guild_id
-                and ScheduledPost.channel_id == channel_id)).first()
+                and ScheduledPost.channel_id == channel_id
+            )
+        ).first()
         if guessing_session_id is None or guessing_session_id[0] is None:
             internal_logger.warn(
                 f"tried to respond to message attached to no active session: "
                 f"guild {message.guild} ({message.guild.id}), "
                 f"channel {message.channel} ({message.channel.id}), "
-                f"message {message.content} ({message.id})")
+                f"message {message.content} ({message.id})"
+            )
             return
         bee = SessionBee.retrieve_saved(guessing_session_id[0], bee_db)
         bee.persist_to(bee_db)
@@ -382,7 +400,8 @@ class BeeBot(InteractionBot):
         for reaction in reactions:
             await message.add_reaction(reaction)
         status_message = await message.channel.fetch_message(
-            bee.metadata["status_message_id"])
+            bee.metadata["status_message_id"]
+        )
         await status_message.edit(content=self.get_status_message(bee))
 
     def remove_scheduled_post(self, guild_id: int) -> Optional[ScheduledPost]:
@@ -393,12 +412,13 @@ class BeeBot(InteractionBot):
         """
         if guild_id in self.scheduled_jobs:
             internal_logger.info(
-                f"cancelling aiocron job for \"{self.get_guild(guild_id)}\"")
+                f'cancelling aiocron job for "{self.get_guild(guild_id)}"'
+            )
             self.scheduled_jobs[guild_id].stop()
             del self.scheduled_jobs[guild_id]
         existing = self.session.execute(
-            select(ScheduledPost).where(
-                ScheduledPost.guild_id == guild_id)).fetchone()
+            select(ScheduledPost).where(ScheduledPost.guild_id == guild_id)
+        ).fetchone()
         if existing is not None:
             self.session.delete(existing[0])
             self.session.flush()
@@ -409,23 +429,30 @@ class BeeBot(InteractionBot):
     def init_responses(self):
 
         @self.slash_command(guild_ids=self.guild_ids)
-        async def start_puzzling(ctx: ApplicationCommandInteraction, time: str = Param(
-            name="time",
-            description="Time of day in NYC. If the time has passed today, you'll also "
-            "receive a puzzle immediately.",
-            choices=BeeBotConfig.get_timing_choices()
-        )):
+        async def start_puzzling(
+            ctx: ApplicationCommandInteraction,
+            time: str = Param(
+                name="time",
+                description="Time of day in NYC. If the time has passed today, you'll also "
+                "receive a puzzle immediately.",
+                choices=BeeBotConfig.get_timing_choices(),
+            ),
+        ):
             "Start receiving Spelling Bees here!"
             response = await self.add_scheduled_post(
-                ScheduledPost(guild_id=ctx.guild_id,
-                              channel_id=ctx.channel_id,
-                              timing=BeeBotConfig.get_hour_for_choice(time)))
+                ScheduledPost(
+                    guild_id=ctx.guild_id,
+                    channel_id=ctx.channel_id,
+                    timing=BeeBotConfig.get_hour_for_choice(time),
+                )
+            )
             internal_logger.info(
                 f"starting to send bees to channel {ctx.channel.name} in {ctx.guild.name}"
             )
             external_logger.info(
-                "Incoming command: /start_puzzling\n" +
-                f"Responding to /start_puzzling with \"{response}\"")
+                "Incoming command: /start_puzzling\n"
+                + f'Responding to /start_puzzling with "{response}"'
+            )
             await ctx.response.send_message(response)
 
         @self.slash_command(guild_ids=self.guild_ids)
@@ -433,28 +460,28 @@ class BeeBot(InteractionBot):
             "Stop receiving Spelling Bees in this server!"
             existed = self.remove_scheduled_post(ctx.guild_id) is not None
             if not existed:
-                response = (
-                    "This server was already not receiving Spelling Bee posts!"
-                )
+                response = "This server was already not receiving Spelling Bee posts!"
             else:
                 response = (
                     "Okay! This server will no longer receive Spelling Bee posts."
                 )
             external_logger.info(
-                "Incoming command: /stop_puzzling\n" +
-                f"Responding to /start_puzzling with \"{response}\"")
+                "Incoming command: /stop_puzzling\n"
+                + f'Responding to /start_puzzling with "{response}"'
+            )
             await ctx.response.send_message(response)
 
         @self.slash_command(guild_ids=self.guild_ids)
         async def obtain_hint(ctx: ApplicationCommandInteraction):
             "Get an up-to-date Spelling Bee hint chart!"
             scheduled: ScheduledPost = self.session.execute(
-                select(ScheduledPost).where(
-                    ScheduledPost.guild_id == ctx.guild_id)).first()
+                select(ScheduledPost).where(ScheduledPost.guild_id == ctx.guild_id)
+            ).first()
             if not scheduled:
                 response = (
                     "Before using this slash command in this server, use "
-                    "/start_puzzling to start getting puzzles!")
+                    "/start_puzzling to start getting puzzles!"
+                )
                 await ctx.response.send_message(response, ephemeral=True)
             elif scheduled[0].channel_id != ctx.channel_id:
                 response = (
@@ -463,55 +490,56 @@ class BeeBot(InteractionBot):
                 )
                 await ctx.response.send_message(response, ephemeral=True)
             else:
-                bee = SessionBee.retrieve_saved(scheduled[0].current_session,
-                                                bee_db)
+                bee = SessionBee.retrieve_saved(scheduled[0].current_session, bee_db)
                 if bee is None:
                     response = "Wait until a puzzle is posted here first!"
                     await ctx.response.send_message(response, ephemeral=True)
                 else:
-                    response = bee.get_unguessed_hints(
-                    ).format_all_for_discord()
+                    response = bee.get_unguessed_hints().format_all_for_discord()
                     await ctx.response.send_message(response)
             external_logger.info(
-                "Incoming command: /obtain_hint\n" +
-                f"Responding to /obtain_hint with:\n{response}")
+                "Incoming command: /obtain_hint\n"
+                + f"Responding to /obtain_hint with:\n{response}"
+            )
 
         @self.slash_command(guild_ids=self.guild_ids)
         async def explain_rules(ctx: ApplicationCommandInteraction):
             "Learn the rules of the Spelling Bee!"
-            with open("rules-explanation.txt",
-                      encoding="utf-8") as explanation_file:
+            with open("rules-explanation.txt", encoding="utf-8") as explanation_file:
                 explanation = explanation_file.read()
                 scheduled: ScheduledPost = self.session.execute(
-                    select(ScheduledPost).where(
-                        ScheduledPost.guild_id == ctx.guild_id)).first()
-                if (scheduled is not None
-                        and scheduled[0].channel_id != ctx.channel_id):
+                    select(ScheduledPost).where(ScheduledPost.guild_id == ctx.guild_id)
+                ).first()
+                if scheduled is not None and scheduled[0].channel_id != ctx.channel_id:
                     explanation += (
                         "\n(This server is already receiving Spelling Bee posts "
-                        f"in the <#{scheduled[0].channel_id}> channel!)")
+                        f"in the <#{scheduled[0].channel_id}> channel!)"
+                    )
                 external_logger.info(
-                    "Incoming command: /explain_rules\n" +
-                    f"responding to /explain_rules with: \n{explanation}")
+                    "Incoming command: /explain_rules\n"
+                    + f"responding to /explain_rules with: \n{explanation}"
+                )
                 await ctx.response.send_message(explanation)
 
         @self.slash_command(guild_ids=self.guild_ids)
         async def help(ctx: ApplicationCommandInteraction):
             "Have the slash commands explained!"
-            with open("commands-explanation.txt",
-                      encoding="utf-8") as explanation_file:
+            with open("commands-explanation.txt", encoding="utf-8") as explanation_file:
                 help_message = explanation_file.read()
                 external_logger.info(
-                    "Incoming command: /help\n" +
-                    f"responding to /explain_rules with: \n{help_message}")
+                    "Incoming command: /help\n"
+                    + f"responding to /explain_rules with: \n{help_message}"
+                )
                 await ctx.response.send_message(help_message)
 
         @self.event
         async def on_message(message: discord.Message):
-            if (not message.author.bot and not message.mention_everyone
-                    and message.guild.me.mentioned_in(message)):
+            if (
+                not message.author.bot
+                and not message.mention_everyone
+                and message.guild.me.mentioned_in(message)
+            ):
                 await self.respond_to_guesses(message)
-                external_logger.info("Incoming message:\n" +
-                                     get_message_log(message))
+                external_logger.info("Incoming message:\n" + get_message_log(message))
 
         self._schedule_app_command_preparation()
