@@ -1,0 +1,11 @@
+version: "3"
+services:
+  app:
+    environment:
+      TZ: America/New_York
+    build: .
+    volumes:
+     - ./data:/app/data
+     - ./logs:/app/logs
+     - ./fonts:/usr/share/fonts/truetype
+    network_mode: 'host'
