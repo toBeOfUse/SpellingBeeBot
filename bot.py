@@ -140,7 +140,7 @@ class BeeBot(InteractionBot):
                 if scheduled.guild_id in in_guilds:
                     self.add_to_cron(scheduled)
                 else:
-                    internal_logger.warn(
+                    internal_logger.warning(
                         "scheduled post for guild that bot is not in!"
                         f" guild id is {scheduled.guild_id}"
                     )
@@ -282,6 +282,9 @@ class BeeBot(InteractionBot):
             await self.todays_puzzle_ready
             bee_base = SpellingBee.retrieve_saved(db_path=bee_db)
             while bee_base.day != self.get_current_date():
+                # TODO: what is this supposed to do between midnight and the
+                # day's puzzle going live?
+                # internal_logger.warning(f"{bee_base.day} vs. {self.get_current_date()}")
                 await asyncio.sleep(5)
                 await self.todays_puzzle_ready
                 bee_base = SpellingBee.retrieve_saved(db_path=bee_db)
@@ -387,7 +390,7 @@ class BeeBot(InteractionBot):
             )
         ).first()
         if guessing_session_id is None or guessing_session_id[0] is None:
-            internal_logger.warn(
+            internal_logger.warning(
                 f"tried to respond to message attached to no active session: "
                 f"guild {message.guild} ({message.guild.id}), "
                 f"channel {message.channel} ({message.channel.id}), "
