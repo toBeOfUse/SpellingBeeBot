@@ -250,14 +250,14 @@ wheels = [
 
 [[package]]
 name = "disnake"
-version = "2.5.2"
+version = "2.10.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aiohttp" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/c9/e1/98445dda21e892424ed6578a8c0c11859148ff31e9072555dca27eb55a52/disnake-2.5.2.tar.gz", hash = "sha256:9fae801275b8ba448de9d9d3cc78b264bd5e1f9225292dad68e7b95eb5e6de68", size = 934557, upload-time = "2022-07-27T18:44:13.277Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/52/6e/a8daf8b56e875f692a2ef666fa9e5a00b6f584131694e4f9e29d8cfa9ffa/disnake-2.10.1.tar.gz", hash = "sha256:e469938c72f88432b55bc5f521a260f027d3db9e5337fe0f28098f3bfafc5a43", size = 1073517, upload-time = "2024-12-29T21:29:43.756Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/4f/0a/4ba2580db44d6e1b61db8e1a16e2a3729059796a369618a87cf8da86323a/disnake-2.5.2-py3-none-any.whl", hash = "sha256:e36faa97afce4c8caacee1c68ba08903611bbb8dd455bd95e32867a1c6b0352a", size = 1047729, upload-time = "2022-07-27T18:44:09.409Z" },
+    { url = "https://files.pythonhosted.org/packages/c2/51/69111539d2f4ce71b9194f8bae6826d8ebb811630cc8e19bf8981d44e43c/disnake-2.10.1-py3-none-any.whl", hash = "sha256:60175459cf5ada0381fc174d693f862c3f0b78e58ce51c39fd9960d86072409d", size = 1128608, upload-time = "2024-12-29T21:29:41.108Z" },
 ]
 
 [[package]]
@@ -495,7 +495,7 @@ dev = [
 requires-dist = [
     { name = "aiocron", specifier = "~=1.8" },
     { name = "bee-engine", git = "https://github.com/tobeofuse/bee-engine.git" },
-    { name = "disnake", specifier = ">=2.5.2,<3" },
+    { name = "disnake", specifier = ">=2.10.1,<3" },
     { name = "sqlalchemy", specifier = ">=1.4.39,<2" },
     { name = "tzdata", specifier = "~=2022.1" },
 ]
