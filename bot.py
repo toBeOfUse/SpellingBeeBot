@@ -12,7 +12,7 @@ from zoneinfo import ZoneInfo
 import aiocron
 import disnake as discord
 from disnake import ApplicationCommandInteraction
-from disnake.ext.commands import Param, InteractionBot
+from disnake.ext.commands import Param, InteractionBot, CommandSyncFlags
 from bee_engine import SessionBee, SpellingBee
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -106,7 +106,7 @@ class BeeBot(InteractionBot):
 
     def __init__(self) -> None:
         intents = discord.Intents.default()
-        super().__init__(intents=intents, sync_commands=True)
+        super().__init__(intents=intents, sync_commands=CommandSyncFlags.all())
         self.db_engine = create_db(schedule_db)
         self.session = Session(self.db_engine)
         self.todays_puzzle_ready: Optional[asyncio.Task] = None
@@ -317,7 +317,6 @@ class BeeBot(InteractionBot):
                 "and the sky is taking the day off today.",
                 "and the sky is looking a little bluer today.",
                 "despite our best efforts.",
-                "and I still don't have a real job.",
             ]
             content = (
                 f"Good morning. It's {dateformat(datetime.now(tz=et))} in "
