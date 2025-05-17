@@ -106,7 +106,7 @@ class BeeBot(InteractionBot):
 
     def __init__(self) -> None:
         intents = discord.Intents.default()
-        super().__init__(intents=intents, sync_commands=CommandSyncFlags.all())
+        super().__init__(intents=intents, command_sync_flags=CommandSyncFlags.all())
         self.db_engine = create_db(schedule_db)
         self.session = Session(self.db_engine)
         self.todays_puzzle_ready: Optional[asyncio.Task] = None
