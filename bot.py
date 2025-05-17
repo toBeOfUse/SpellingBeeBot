@@ -430,7 +430,7 @@ class BeeBot(InteractionBot):
 
     def init_responses(self):
 
-        @self.slash_command(guild_ids=self.guild_ids)
+        @self.slash_command()
         async def start_puzzling(
             ctx: ApplicationCommandInteraction,
             time: str = Param(
@@ -457,7 +457,7 @@ class BeeBot(InteractionBot):
             )
             await ctx.response.send_message(response)
 
-        @self.slash_command(guild_ids=self.guild_ids)
+        @self.slash_command()
         async def stop_puzzling(ctx: ApplicationCommandInteraction):
             "Stop receiving Spelling Bees in this server!"
             existed = self.remove_scheduled_post(ctx.guild_id) is not None
@@ -473,7 +473,7 @@ class BeeBot(InteractionBot):
             )
             await ctx.response.send_message(response)
 
-        @self.slash_command(guild_ids=self.guild_ids)
+        @self.slash_command()
         async def obtain_hint(ctx: ApplicationCommandInteraction):
             "Get an up-to-date Spelling Bee hint chart!"
             scheduled: ScheduledPost = self.session.execute(
@@ -504,7 +504,7 @@ class BeeBot(InteractionBot):
                 + f"Responding to /obtain_hint with:\n{response}"
             )
 
-        @self.slash_command(guild_ids=self.guild_ids)
+        @self.slash_command()
         async def explain_rules(ctx: ApplicationCommandInteraction):
             "Learn the rules of the Spelling Bee!"
             with open("rules-explanation.txt", encoding="utf-8") as explanation_file:
@@ -523,7 +523,7 @@ class BeeBot(InteractionBot):
                 )
                 await ctx.response.send_message(explanation)
 
-        @self.slash_command(guild_ids=self.guild_ids)
+        @self.slash_command()
         async def help(ctx: ApplicationCommandInteraction):
             "Have the slash commands explained!"
             with open("commands-explanation.txt", encoding="utf-8") as explanation_file:
